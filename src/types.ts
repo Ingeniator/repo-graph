@@ -3,7 +3,10 @@ export type ViewType = 'repo' | 'dockerfile' | 'image';
 
 export interface RepoConfig {
   name: string;
-  path: string;
+  path?: string;
+  github?: string;
+  git?: string;
+  ref?: string;
   images?: ConfiguredImage[];
 }
 
@@ -16,6 +19,7 @@ export interface RawConfig {
   repos: RepoConfig[];
   settings?: {
     dockerfilePatterns?: string[];
+    cacheDir?: string;
   };
   imageOwnership?: Record<string, { repo: string; dockerfile?: string; confidence?: ResolutionConfidence }>;
 }
@@ -65,4 +69,9 @@ export interface ScanGraph {
   repos: RepoNode[];
   edges: GraphEdge[];
   unresolvedImages: string[];
+}
+
+export interface RepoResolutionOptions {
+  cacheDir?: string;
+  refresh?: boolean;
 }

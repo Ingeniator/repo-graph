@@ -7,7 +7,8 @@
 - `src/dockerfile-parser.ts` — minimal Dockerfile parsing for `ARG`, `FROM`, `AS`
 - `src/graph.ts` — graph construction and ownership resolution
 - `src/report.ts` — human-readable report output
-- `src/renderers.ts` — Mermaid and DOT rendering
+- `src/renderers.ts` — Mermaid, DOT, and SVG rendering
+- `src/repo-sources.ts` — local/git/GitHub repo resolution and cache management
 - `src/cli.ts` — CLI entrypoint
 
 ## Notes

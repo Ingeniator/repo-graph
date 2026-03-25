@@ -1,15 +1,20 @@
 repos:
   - name: baseimages
-    path: ../example/baseimages
+    github: Ingeniator/baseimages
+    ref: main
     images:
       - name: ghcr.io/ingeniator/base-node:18
         dockerfile: ./Dockerfile
+
   - name: service-a
-    path: ../example/service-a
+    github: Ingeniator/service-a
+    ref: main
+
   - name: service-b
     path: ../example/service-b
 
 settings:
+  cacheDir: ./.cache/repos
   dockerfilePatterns:
     - Dockerfile
     - Dockerfile.*

@@ -5,6 +5,7 @@ import { loadConfig } from './config.js';
 import { buildGraph } from './graph.js';
 import { renderTextReport } from './report.js';
 import { renderDot, renderMermaid, renderSvgRepos } from './renderers.js';
+import { resolveRepoSources } from './repo-sources.js';
 import { ScanGraph } from './types.js';
 
 async function main(): Promise<void> {
@@ -29,11 +30,14 @@ async function main(): Promise<void> {
 function handleScan(args: string[]): void {
   const configPath = args[0];
   if (!configPath) {
-    throw new Error('Usage: repo-graph scan <config.yaml> [--out <dir>]');
+    throw new Error('Usage: repo-graph scan <config.yaml> [--out <dir>] [--refresh] [--cache-dir <dir>]');
   }
 
   const outDir = getFlagValue(args, '--out') ?? './output';
-  const graph = buildGraph(loadConfig(configPath));
+  const refresh = hasFlag(args, '--refresh');
+  const cacheDir = getFlagValue(args, '--cache-dir');
+  const resolvedConfig = resolveRepoSources(loadConfig(configPath), { refresh, cacheDir });
+  const graph = buildGraph(resolvedConfig);
   fs.mkdirSync(outDir, { recursive: true });
   const outputPath = path.join(outDir, 'graph.json');
   fs.writeFileSync(outputPath, JSON.stringify(graph, null, 2));
@@ -86,8 +90,12 @@ function getFlagValue(args: string[], flag: string): string | undefined {
   return index >= 0 ? args[index + 1] : undefined;
 }
 
+function hasFlag(args: string[], flag: string): boolean {
+  return args.includes(flag);
+}
+
 function printHelp(): void {
-  console.log(`repo-graph\n\nCommands:\n  scan <config.yaml> [--out <dir>]\n  report <graph.json>\n  render <graph.json> --format <mermaid|dot|svgrepos>`);
+  console.log(`repo-graph\n\nCommands:\n  scan <config.yaml> [--out <dir>] [--refresh] [--cache-dir <dir>]\n  report <graph.json>\n  render <graph.json> --format <mermaid|dot|svgrepos>`);
 }
 
 main().catch((error) => {

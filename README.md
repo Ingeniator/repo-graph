@@ -102,6 +102,8 @@ This is required to avoid false confidence.
 
 ```bash
 repo-graph scan repos.yaml --out ./output
+repo-graph scan repos.yaml --out ./output --refresh
+repo-graph scan repos.yaml --out ./output --cache-dir ./.cache/repos
 repo-graph report ./output/graph.json
 repo-graph render ./output/graph.json --format mermaid > dependency-graph.mmd
 repo-graph render ./output/graph.json --format dot > dependency-graph.dot
@@ -155,6 +157,7 @@ Recommended implementation choices:
 - explicit image ownership mapping in config
 - graph output focused on repo/image relationships
 - Mermaid output for easy visualization
+- clone/cache support for GitHub and generic git remotes via `.cache/repos`
 
 This is the best usefulness-to-complexity tradeoff for V1.
 
@@ -175,6 +178,40 @@ This is the best usefulness-to-complexity tradeoff for V1.
 9. Focus/filter options
 
 That sequence is enough for a useful first release.
+
+## Repo Sources and Cache
+
+Each repo can now be defined as one of:
+
+- local path via `path`
+- GitHub shorthand via `github: owner/repo`
+- explicit git remote via `git`
+
+Optional fields:
+
+- `ref` — branch or tag to check out
+- `settings.cacheDir` — where cloned repos are stored
+- `repo-graph scan --refresh` — fetch updates for cached repos before scanning
+- `repo-graph scan --cache-dir <dir>` — override cache location for a run
+
+Example:
+
+```yaml
+repos:
+  - name: service-a
+    github: Ingeniator/service-a
+    ref: main
+
+  - name: service-b
+    git: git@github.com:Ingeniator/service-b.git
+    ref: main
+
+  - name: local-dev
+    path: ../service-local
+
+settings:
+  cacheDir: ./.cache/repos
+```
 
 ## Output Requirements
 

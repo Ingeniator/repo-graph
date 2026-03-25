@@ -3,13 +3,19 @@ import { discoverDockerfiles } from './fs-utils.js';
 import { parseDockerfile } from './dockerfile-parser.js';
 
 export function buildGraph(config: RawConfig): ScanGraph {
-  const repos: RepoNode[] = config.repos.map((repo) => ({
-    name: repo.name,
-    path: repo.path,
-    dockerfiles: discoverDockerfiles(repo.path, config.settings?.dockerfilePatterns).map((dockerfilePath) =>
-      parseDockerfile(repo, dockerfilePath),
-    ),
-  }));
+  const repos: RepoNode[] = config.repos.map((repo) => {
+    if (!repo.path) {
+      throw new Error(`Repo '${repo.name}' has no resolved path. Run source resolution before buildGraph.`);
+    }
+
+    return {
+      name: repo.name,
+      path: repo.path,
+      dockerfiles: discoverDockerfiles(repo.path, config.settings?.dockerfilePatterns).map((dockerfilePath) =>
+        parseDockerfile(repo, dockerfilePath),
+      ),
+    };
+  });
 
   const edges: GraphEdge[] = [];
   const unresolvedImages = new Set<string>();

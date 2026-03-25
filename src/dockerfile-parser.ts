@@ -33,7 +33,8 @@ export function parseDockerfile(repo: RepoConfig, absolutePath: string): Dockerf
 
     const fromBody = fromMatch[1].trim();
     const parts = fromBody.split(/\s+/);
-    const imageRef = resolveArgSubstitution(parts[0], context.args);
+    const rawImageRef = parts[0] ?? '';
+    const imageRef = resolveArgSubstitution(rawImageRef, context.args);
     const aliasIndex = parts.findIndex((part) => part.toUpperCase() === 'AS');
     const alias = aliasIndex >= 0 ? parts[aliasIndex + 1] : undefined;
 
@@ -47,7 +48,7 @@ export function parseDockerfile(repo: RepoConfig, absolutePath: string): Dockerf
 
     const confidence: ResolutionConfidence = imageRef.includes('${') ? 'unresolved' : 'inferred';
     dependencies.push({
-      raw: parts[0],
+      raw: rawImageRef,
       resolved: imageRef,
       type: 'image',
       sourceInstruction: trimmed,
@@ -55,7 +56,12 @@ export function parseDockerfile(repo: RepoConfig, absolutePath: string): Dockerf
     });
   }
 
-  const relativePath = path.relative(repo.path, absolutePath);
+  const repoPath = repo.path;
+  if (!repoPath) {
+    throw new Error(`Repo '${repo.name}' has no resolved path`);
+  }
+
+  const relativePath = path.relative(repoPath, absolutePath);
   const serviceName = deriveServiceName(relativePath);
 
   for (const configuredImage of repo.images ?? []) {
