@@ -105,6 +105,7 @@ repo-graph scan repos.yaml --out ./output
 repo-graph scan repos.yaml --out ./output --refresh
 repo-graph scan repos.yaml --out ./output --cache-dir ./.cache/repos
 repo-graph report ./output/graph.json
+repo-graph report ./output/graph.json --format markdown > dependency-report.md
 repo-graph render ./output/graph.json --format mermaid > dependency-graph.mmd
 repo-graph render ./output/graph.json --format dot > dependency-graph.dot
 repo-graph render ./output/graph.json --format svgrepos > dependency-graph.svg
@@ -220,6 +221,7 @@ V1 should produce:
 - JSON graph
 - Mermaid diagram
 - readable text summary/report
+- Markdown report suitable for docs/PRs/wiki pages
 
 ## Example Output
 
@@ -263,6 +265,7 @@ Current snapshots cover:
 
 - stabilized `graph.json`
 - text report
+- Markdown report
 - Mermaid output
 - DOT output
 - `svgrepos` SVG output
@@ -288,7 +291,7 @@ Possible next steps after V1:
 - visualize staleness of dependencies
 - estimate change impact from base image updates
 - integrate Renovate/Dependabot data
-- export Markdown documentation
+- richer Markdown/HTML documentation layouts
 
 ## Naming
 

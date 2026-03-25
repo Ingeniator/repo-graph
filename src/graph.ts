@@ -1,6 +1,14 @@
+import path from 'node:path';
 import { RawConfig, ScanGraph, RepoNode, GraphEdge, OwnershipResolution, SourceDiagnostic } from './types.js';
 import { discoverDockerfiles } from './fs-utils.js';
 import { parseDockerfile } from './dockerfile-parser.js';
+
+interface OwnershipCandidate {
+  repo: string;
+  dockerfile?: string;
+  confidence: 'configured' | 'inferred';
+  reason: string;
+}
 
 export function buildGraph(config: RawConfig): ScanGraph {
   const sourceDiagnostics: SourceDiagnostic[] = [];
@@ -95,14 +103,9 @@ export function buildGraph(config: RawConfig): ScanGraph {
 }
 
 function resolveOwnership(config: RawConfig, repos: RepoNode[], image: string): OwnershipResolution {
-  const configured = config.imageOwnership?.[image];
+  const configured = resolveConfiguredOwnership(config, image);
   if (configured) {
-    return {
-      repo: configured.repo,
-      dockerfile: configured.dockerfile,
-      confidence: configured.confidence ?? 'configured',
-      reason: 'matched via imageOwnership config',
-    };
+    return configured;
   }
 
   const inferred = inferOwnership(repos, image);
@@ -116,19 +119,69 @@ function resolveOwnership(config: RawConfig, repos: RepoNode[], image: string): 
   };
 }
 
+function resolveConfiguredOwnership(config: RawConfig, image: string): OwnershipResolution | undefined {
+  const entries = Object.entries(config.imageOwnership ?? {});
+  const normalizedImage = normalizeImageReference(image);
+
+  for (const [configuredImage, configured] of entries) {
+    if (configuredImage === image || normalizeImageReference(configuredImage) === normalizedImage) {
+      return {
+        repo: configured.repo,
+        dockerfile: configured.dockerfile,
+        confidence: configured.confidence ?? 'configured',
+        reason: configuredImage === image ? 'matched via imageOwnership config' : 'matched via normalized imageOwnership config',
+      };
+    }
+  }
+
+  return undefined;
+}
+
 function inferOwnership(repos: RepoNode[], image: string): OwnershipResolution | undefined {
+  const exactMatches: OwnershipCandidate[] = [];
+  const normalizedMatches: OwnershipCandidate[] = [];
+  const heuristicMatches: OwnershipCandidate[] = [];
+  const normalizedImage = normalizeImageReference(image);
+
   for (const repo of repos) {
     for (const dockerfile of repo.dockerfiles) {
-      if (dockerfile.declaredImages.includes(image)) {
-        return {
+      for (const declaredImage of dockerfile.declaredImages) {
+        const candidate: OwnershipCandidate = {
           repo: repo.name,
           dockerfile: dockerfile.path,
           confidence: 'inferred',
           reason: 'matched configured image declaration on a discovered dockerfile',
         };
+
+        if (declaredImage === image) {
+          exactMatches.push(candidate);
+        } else if (normalizeImageReference(declaredImage) === normalizedImage) {
+          normalizedMatches.push({
+            ...candidate,
+            reason: 'matched normalized configured image declaration on a discovered dockerfile',
+          });
+        }
+      }
+
+      if (dockerfile.declaredImages.length === 0 && matchesImplicitOwner(repo.name, dockerfile.path, image)) {
+        heuristicMatches.push({
+          repo: repo.name,
+          dockerfile: dockerfile.path,
+          confidence: 'inferred',
+          reason: 'matched repo/service heuristics for a dockerfile without declared produced images',
+        });
       }
     }
   }
+
+  const exact = collapseOwnershipMatches(exactMatches, image);
+  if (exact) return exact;
+
+  const normalized = collapseOwnershipMatches(normalizedMatches, image);
+  if (normalized) return normalized;
+
+  const heuristic = collapseOwnershipMatches(heuristicMatches, image);
+  if (heuristic) return heuristic;
 
   const fallbackRepo = inferRepoNameFromImage(image, repos.map((repo) => repo.name));
   if (fallbackRepo) {
@@ -142,7 +195,96 @@ function inferOwnership(repos: RepoNode[], image: string): OwnershipResolution |
   return undefined;
 }
 
+function collapseOwnershipMatches(matches: OwnershipCandidate[], image: string): OwnershipResolution | undefined {
+  if (!matches.length) return undefined;
+  if (matches.length === 1) {
+    return matches[0];
+  }
+
+  const uniqueTargets = new Set(matches.map((match) => `${match.repo}:${match.dockerfile ?? ''}`));
+  if (uniqueTargets.size === 1) {
+    return matches[0];
+  }
+
+  return {
+    confidence: 'unresolved',
+    reason: `multiple possible internal owners found for ${image}: ${matches.map(formatOwnershipCandidate).sort().join(', ')}`,
+  };
+}
+
+function formatOwnershipCandidate(candidate: OwnershipCandidate): string {
+  return candidate.dockerfile ? `${candidate.repo}/${candidate.dockerfile}` : candidate.repo;
+}
+
+function matchesImplicitOwner(repoName: string, dockerfilePath: string, image: string): boolean {
+  const candidates = new Set<string>([
+    repoName,
+    path.posix.basename(repoName),
+    deriveServiceKey(dockerfilePath),
+    `${repoName}/${deriveServiceKey(dockerfilePath)}`,
+    `${repoName}-${deriveServiceKey(dockerfilePath)}`,
+  ].map((value) => normalizeToken(value)).filter(Boolean));
+
+  const imageTokens = tokenizeImageReference(image);
+  return [...candidates].some((candidate) => imageTokens.has(candidate));
+}
+
+function deriveServiceKey(dockerfilePath: string): string {
+  const normalized = dockerfilePath.replace(/\\/g, '/').replace(/^\.\//, '');
+  const dirname = path.posix.dirname(normalized);
+  if (dirname !== '.') {
+    return path.posix.basename(dirname);
+  }
+  return path.posix.basename(normalized).replace(/^dockerfile[._-]?/i, '') || 'dockerfile';
+}
+
 function inferRepoNameFromImage(image: string, repoNames: string[]): string | undefined {
-  const normalized = image.toLowerCase();
-  return repoNames.find((repoName) => normalized.includes(repoName.toLowerCase()));
+  const tokens = tokenizeImageReference(image);
+  return repoNames.find((repoName) => tokens.has(normalizeToken(repoName)));
+}
+
+function tokenizeImageReference(image: string): Set<string> {
+  const normalized = normalizeImageReference(image);
+  const slashParts = normalized.split('/').filter(Boolean);
+  const tokens = new Set<string>();
+  for (const part of slashParts) {
+    const token = normalizeToken(part);
+    if (token) tokens.add(token);
+    for (const subPart of part.split(/[-_.]/)) {
+      const subToken = normalizeToken(subPart);
+      if (subToken) tokens.add(subToken);
+    }
+  }
+  return tokens;
+}
+
+function normalizeImageReference(image: string): string {
+  let normalized = image.trim().toLowerCase();
+  const digestIndex = normalized.indexOf('@');
+  if (digestIndex >= 0) {
+    normalized = normalized.slice(0, digestIndex);
+  }
+
+  const slashIndex = normalized.lastIndexOf('/');
+  const colonIndex = normalized.lastIndexOf(':');
+  if (colonIndex > slashIndex) {
+    normalized = normalized.slice(0, colonIndex);
+  }
+
+  if (!normalized.includes('/')) {
+    return `docker.io/library/${normalized}`;
+  }
+
+  const parts = normalized.split('/');
+  const first = parts[0];
+  const looksLikeRegistry = first.includes('.') || first.includes(':') || first === 'localhost';
+  if (!looksLikeRegistry) {
+    return `docker.io/${normalized}`;
+  }
+
+  return normalized;
+}
+
+function normalizeToken(value: string): string {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '');
 }

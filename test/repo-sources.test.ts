@@ -5,6 +5,8 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { resolveRepoSources } from '../src/repo-sources.js';
+import { buildGraph } from '../src/graph.js';
+import { projectGraph } from '../src/project.js';
 import { RawConfig, SourceDiagnostic } from '../src/types.js';
 
 function git(args: string[], cwd: string): string {
@@ -81,6 +83,28 @@ test('resolveRepoSources can check out tags and commits', () => {
   const committed = resolveRepoSources(commitConfig, { cacheDir, diagnostics: commitDiagnostics });
   assert.ok(committed.repos[0].path);
   assert.equal(commitDiagnostics.some((entry) => entry.code === 'git.checkout.commit'), true);
+});
+
+test('full scan output from cached repos supports projection filters', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-graph-test-'));
+  const { originPath } = createOriginRepo(tempRoot);
+  const cacheDir = path.join(tempRoot, 'cache');
+
+  const config: RawConfig = {
+    repos: [{ name: 'sample', git: originPath, ref: 'main' }],
+    settings: { cacheDir },
+  };
+
+  const diagnostics: SourceDiagnostic[] = [];
+  const resolved = resolveRepoSources(config, { cacheDir, diagnostics });
+  const graph = buildGraph(resolved);
+  const projected = projectGraph(graph, { view: 'repo', focus: 'sample', depth: 1, includeExternal: true });
+
+  assert.equal(graph.metadata.repoCount, 1);
+  assert.equal(graph.metadata.sourceDiagnostics.length, 0);
+  assert.deepEqual(projected.nodes.map((node) => node.label).sort(), ['node:20-alpine', 'sample']);
+  assert.equal(projected.edges.length, 1);
+  assert.equal(projected.edges[0].internal, false);
 });
 
 test('resolveRepoSources surfaces private GitHub guidance in auth-style failures', () => {

@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { loadConfig } from '../src/config.js';
 import { buildGraph } from '../src/graph.js';
-import { renderTextReport } from '../src/report.js';
+import { renderMarkdownReport, renderTextReport } from '../src/report.js';
 import { renderDot, renderMermaid, renderSvgRepos } from '../src/renderers.js';
 import { stabilizeGraph } from '../src/stable.js';
 
@@ -27,6 +27,13 @@ test('fixture text report snapshot matches', () => {
   const graph = stabilizeGraph(buildGraph(loadConfig(fixtureConfigPath)));
   const actual = `${renderTextReport(graph)}\n`;
   const expected = readSnapshot('fixture-report.txt');
+  assert.equal(actual, expected);
+});
+
+test('fixture markdown report snapshot matches', () => {
+  const graph = stabilizeGraph(buildGraph(loadConfig(fixtureConfigPath)));
+  const actual = `${renderMarkdownReport(graph)}\n`;
+  const expected = readSnapshot('fixture-report.md');
   assert.equal(actual, expected);
 });
 

@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { loadConfig } from './config.js';
 import { buildGraph } from './graph.js';
-import { renderTextReport } from './report.js';
+import { renderMarkdownReport, renderTextReport } from './report.js';
 import { renderDot, renderMermaid, renderSvgRepos } from './renderers.js';
 import { resolveRepoSources } from './repo-sources.js';
 import { ProjectGraphOptions } from './project.js';
@@ -51,11 +51,24 @@ function handleScan(args: string[]): void {
 function handleReport(args: string[]): void {
   const graphPath = args[0];
   if (!graphPath) {
-    throw new Error('Usage: repo-graph report <graph.json> [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]');
+    throw new Error('Usage: repo-graph report <graph.json> [--format text|markdown] [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]');
   }
 
   const graph = readGraph(graphPath);
-  console.log(renderTextReport(graph, readProjectionOptions(args)));
+  const format = getFlagValue(args, '--format') ?? 'text';
+  const options = readProjectionOptions(args);
+
+  if (format === 'text') {
+    console.log(renderTextReport(graph, options));
+    return;
+  }
+
+  if (format === 'markdown' || format === 'md') {
+    console.log(renderMarkdownReport(graph, options));
+    return;
+  }
+
+  throw new Error(`Unsupported report format: ${format}`);
 }
 
 function handleRender(args: string[]): void {
@@ -111,7 +124,7 @@ function hasFlag(args: string[], flag: string): boolean {
 }
 
 function printHelp(): void {
-  console.log(`repo-graph\n\nCommands:\n  scan <config.yaml> [--out <dir>] [--refresh] [--cache-dir <dir>]\n  report <graph.json> [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]\n  render <graph.json> --format <mermaid|dot|svgrepos> [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]`);
+  console.log(`repo-graph\n\nCommands:\n  scan <config.yaml> [--out <dir>] [--refresh] [--cache-dir <dir>]\n  report <graph.json> [--format text|markdown] [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]\n  render <graph.json> --format <mermaid|dot|svgrepos> [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]`);
 }
 
 main().catch((error) => {

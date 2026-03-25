@@ -34,3 +34,17 @@ test('image view prefers declared image names when present', () => {
   assert.ok(projected.nodes.some((node) => node.label === 'ghcr.io/ingeniator/base-node:18'));
   assert.ok(projected.edges.some((edge) => edge.to === 'ghcr.io/ingeniator/base-node:18'));
 });
+
+test('image view uses stable internal synthetic nodes when a service has no declared produced image', () => {
+  const projected = projectGraph(graph, { view: 'image' });
+  assert.ok(projected.nodes.some((node) => node.id === 'internal-image:service-a:Dockerfile' && node.label === 'service-a/Dockerfile'));
+  assert.ok(projected.edges.some((edge) => edge.from === 'internal-image:service-a:Dockerfile' && edge.to === 'ghcr.io/ingeniator/base-node:18'));
+});
+
+test('focus and exclude-external work together in image view', () => {
+  const projected = projectGraph(graph, { view: 'image', focus: 'service-a', depth: 1, excludeExternal: true });
+  assert.ok(projected.nodes.some((node) => node.label === 'service-a/Dockerfile'));
+  assert.ok(projected.nodes.some((node) => node.label === 'ghcr.io/ingeniator/base-node:18'));
+  assert.ok(projected.edges.every((edge) => edge.internal));
+  assert.ok(projected.edges.some((edge) => edge.from === 'internal-image:service-a:Dockerfile' && edge.to === 'ghcr.io/ingeniator/base-node:18'));
+});

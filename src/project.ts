@@ -111,9 +111,9 @@ function findFocusNodeIds(graph: ScanGraph, view: ViewType, focus: string): stri
       }
 
       if (view === 'image') {
-        for (const declaredImage of dockerfile.declaredImages) {
-          if (declaredImage.toLowerCase().includes(needle)) {
-            ids.add(declaredImage);
+        for (const node of getImageViewNodesForDockerfile(repo, dockerfile)) {
+          if (node.label.toLowerCase().includes(needle)) {
+            ids.add(node.id);
           }
         }
       }
@@ -159,19 +159,18 @@ function collectNeighborhood(edges: ProjectEdge[], seeds: Set<string>, depth: nu
   return kept;
 }
 
-function buildOwnerImageIndex(repos: RepoNode[]): Map<string, string[]> {
-  const index = new Map<string, string[]>();
+function buildOwnerImageIndex(repos: RepoNode[]): Map<string, ProjectNode[]> {
+  const index = new Map<string, ProjectNode[]>();
   for (const repo of repos) {
     for (const dockerfile of repo.dockerfiles) {
-      if (!dockerfile.declaredImages.length) continue;
       const key = `${repo.name}:${dockerfile.path}`;
-      index.set(key, [...dockerfile.declaredImages]);
+      index.set(key, getImageViewNodesForDockerfile(repo, dockerfile));
     }
   }
   return index;
 }
 
-function projectEdge(repos: RepoNode[], edge: GraphEdge, view: ViewType, ownerImageIndex: Map<string, string[]>) {
+function projectEdge(repos: RepoNode[], edge: GraphEdge, view: ViewType, ownerImageIndex: Map<string, ProjectNode[]>) {
   const sourceRepo = repos.find((repo) => repo.dockerfiles.some((dockerfile) => dockerfile.id === edge.from));
   const sourceDockerfile = sourceRepo?.dockerfiles.find((dockerfile) => dockerfile.id === edge.from);
   if (!sourceRepo || !sourceDockerfile) return undefined;
@@ -196,18 +195,13 @@ function projectEdge(repos: RepoNode[], edge: GraphEdge, view: ViewType, ownerIm
   }
 
   if (view === 'image') {
-    const sourceImages = sourceDockerfile.declaredImages.length
-      ? sourceDockerfile.declaredImages
-      : [`${sourceRepo.name}/${sourceDockerfile.path}`];
-    const targetImages = internal ? (ownerImages?.length ? ownerImages : [edge.metadata.dependency ?? edge.to]) : [edge.metadata.dependency ?? edge.to];
+    const sourceImages = getImageViewNodesForDockerfile(sourceRepo, sourceDockerfile);
+    const targetImages = internal
+      ? (ownerImages?.length ? ownerImages : [{ id: edge.metadata.dependency ?? edge.to, label: edge.metadata.dependency ?? edge.to, kind: 'image' as const, scope: 'internal' as const }])
+      : [{ id: edge.metadata.dependency ?? edge.to, label: edge.metadata.dependency ?? edge.to, kind: 'image' as const, scope: 'external' as const }];
     return {
-      from: { id: sourceImages[0], label: sourceImages[0], kind: 'image' as const, scope: 'internal' as const },
-      to: {
-        id: targetImages[0],
-        label: targetImages[0],
-        kind: 'image' as const,
-        scope: internal ? ('internal' as const) : ('external' as const),
-      },
+      from: sourceImages[0],
+      to: targetImages[0],
       confidence: edge.confidence,
       rawDependency: edge.metadata.dependency ?? edge.to,
       internal,
@@ -233,4 +227,22 @@ function projectEdge(repos: RepoNode[], edge: GraphEdge, view: ViewType, ownerIm
     rawDependency: edge.metadata.dependency ?? edge.to,
     internal,
   };
+}
+
+function getImageViewNodesForDockerfile(repo: RepoNode, dockerfile: RepoNode['dockerfiles'][number]): ProjectNode[] {
+  if (dockerfile.declaredImages.length) {
+    return dockerfile.declaredImages.map((image) => ({
+      id: image,
+      label: image,
+      kind: 'image' as const,
+      scope: 'internal' as const,
+    }));
+  }
+
+  return [{
+    id: `internal-image:${repo.name}:${dockerfile.path}`,
+    label: `${repo.name}/${dockerfile.path}`,
+    kind: 'image' as const,
+    scope: 'internal' as const,
+  }];
 }

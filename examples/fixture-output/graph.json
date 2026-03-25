@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-03-25T21:51:44.908Z",
+  "generatedAt": "2026-03-25T23:08:26.599Z",
   "repos": [
     {
       "name": "baseimages",
@@ -20,13 +20,23 @@
               "resolved": "node:20-alpine",
               "type": "image",
               "sourceInstruction": "FROM node:20-alpine",
+              "sourceLine": 1,
               "confidence": "unresolved",
+              "warnings": [
+                {
+                  "code": "ownership.unresolved",
+                  "message": "no configured or inferred owner found",
+                  "line": 1,
+                  "instruction": "FROM node:20-alpine"
+                }
+              ],
               "ownership": {
                 "confidence": "unresolved",
                 "reason": "no configured or inferred owner found"
               }
             }
-          ]
+          ],
+          "warnings": []
         }
       ]
     },
@@ -47,7 +57,9 @@
               "resolved": "ghcr.io/ingeniator/base-node:18",
               "type": "image",
               "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18 AS builder",
+              "sourceLine": 1,
               "confidence": "configured",
+              "warnings": [],
               "ownership": {
                 "repo": "baseimages",
                 "dockerfile": "Dockerfile",
@@ -55,7 +67,8 @@
                 "reason": "matched via imageOwnership config"
               }
             }
-          ]
+          ],
+          "warnings": []
         }
       ]
     },
@@ -76,7 +89,9 @@
               "resolved": "ghcr.io/ingeniator/base-node:18",
               "type": "image",
               "sourceInstruction": "FROM ${BASE_IMAGE}",
+              "sourceLine": 2,
               "confidence": "configured",
+              "warnings": [],
               "ownership": {
                 "repo": "baseimages",
                 "dockerfile": "Dockerfile",
@@ -84,7 +99,8 @@
                 "reason": "matched via imageOwnership config"
               }
             }
-          ]
+          ],
+          "warnings": []
         }
       ]
     },
@@ -105,7 +121,9 @@
               "resolved": "ghcr.io/ingeniator/base-node:18",
               "type": "image",
               "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18",
+              "sourceLine": 1,
               "confidence": "configured",
+              "warnings": [],
               "ownership": {
                 "repo": "baseimages",
                 "dockerfile": "Dockerfile",
@@ -113,7 +131,8 @@
                 "reason": "matched via imageOwnership config"
               }
             }
-          ]
+          ],
+          "warnings": []
         },
         {
           "id": "monorepo:apps/worker/Dockerfile.worker",
@@ -128,7 +147,16 @@
               "resolved": "node:20-alpine",
               "type": "image",
               "sourceInstruction": "FROM ${BASE} AS base",
+              "sourceLine": 2,
               "confidence": "unresolved",
+              "warnings": [
+                {
+                  "code": "ownership.unresolved",
+                  "message": "no configured or inferred owner found",
+                  "line": 2,
+                  "instruction": "FROM ${BASE} AS base"
+                }
+              ],
               "ownership": {
                 "confidence": "unresolved",
                 "reason": "no configured or inferred owner found"
@@ -139,7 +167,9 @@
               "resolved": "ghcr.io/ingeniator/base-node:18",
               "type": "image",
               "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18 AS runtime",
+              "sourceLine": 7,
               "confidence": "configured",
+              "warnings": [],
               "ownership": {
                 "repo": "baseimages",
                 "dockerfile": "Dockerfile",
@@ -147,7 +177,8 @@
                 "reason": "matched via imageOwnership config"
               }
             }
-          ]
+          ],
+          "warnings": []
         }
       ]
     }
@@ -160,8 +191,12 @@
       "confidence": "unresolved",
       "metadata": {
         "dependency": "node:20-alpine",
+        "rawDependency": "node:20-alpine",
         "sourceInstruction": "FROM node:20-alpine",
-        "reason": "no configured or inferred owner found"
+        "sourceLine": "1",
+        "warningCount": "1",
+        "reason": "no configured or inferred owner found",
+        "targetScope": "external"
       }
     },
     {
@@ -171,10 +206,13 @@
       "confidence": "configured",
       "metadata": {
         "dependency": "ghcr.io/ingeniator/base-node:18",
+        "rawDependency": "ghcr.io/ingeniator/base-node:18",
         "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18 AS builder",
+        "sourceLine": "1",
         "repo": "baseimages",
         "dockerfile": "Dockerfile",
-        "reason": "matched via imageOwnership config"
+        "reason": "matched via imageOwnership config",
+        "targetScope": "internal"
       }
     },
     {
@@ -184,10 +222,13 @@
       "confidence": "configured",
       "metadata": {
         "dependency": "ghcr.io/ingeniator/base-node:18",
+        "rawDependency": "${BASE_IMAGE}",
         "sourceInstruction": "FROM ${BASE_IMAGE}",
+        "sourceLine": "2",
         "repo": "baseimages",
         "dockerfile": "Dockerfile",
-        "reason": "matched via imageOwnership config"
+        "reason": "matched via imageOwnership config",
+        "targetScope": "internal"
       }
     },
     {
@@ -197,10 +238,13 @@
       "confidence": "configured",
       "metadata": {
         "dependency": "ghcr.io/ingeniator/base-node:18",
+        "rawDependency": "ghcr.io/ingeniator/base-node:18",
         "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18",
+        "sourceLine": "1",
         "repo": "baseimages",
         "dockerfile": "Dockerfile",
-        "reason": "matched via imageOwnership config"
+        "reason": "matched via imageOwnership config",
+        "targetScope": "internal"
       }
     },
     {
@@ -210,8 +254,12 @@
       "confidence": "unresolved",
       "metadata": {
         "dependency": "node:20-alpine",
+        "rawDependency": "${BASE}",
         "sourceInstruction": "FROM ${BASE} AS base",
-        "reason": "no configured or inferred owner found"
+        "sourceLine": "2",
+        "warningCount": "1",
+        "reason": "no configured or inferred owner found",
+        "targetScope": "external"
       }
     },
     {
@@ -221,14 +269,31 @@
       "confidence": "configured",
       "metadata": {
         "dependency": "ghcr.io/ingeniator/base-node:18",
+        "rawDependency": "ghcr.io/ingeniator/base-node:18",
         "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18 AS runtime",
+        "sourceLine": "7",
         "repo": "baseimages",
         "dockerfile": "Dockerfile",
-        "reason": "matched via imageOwnership config"
+        "reason": "matched via imageOwnership config",
+        "targetScope": "internal"
       }
     }
   ],
   "unresolvedImages": [
     "node:20-alpine"
-  ]
+  ],
+  "metadata": {
+    "repoCount": 4,
+    "dockerfileCount": 5,
+    "dependencyCount": 6,
+    "internalEdgeCount": 4,
+    "externalEdgeCount": 2,
+    "unresolvedCount": 1,
+    "warningCount": 2,
+    "dockerfilePatterns": [
+      "Dockerfile",
+      "Dockerfile.*"
+    ],
+    "sourceDiagnostics": []
+  }
 }
