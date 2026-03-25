@@ -1,0 +1,9 @@
+ARG BASE=node:20-alpine
+FROM ${BASE} AS base
+WORKDIR /workspace/worker
+COPY . .
+RUN echo "prep"
+
+FROM ghcr.io/ingeniator/base-node:18 AS runtime
+COPY --from=base /workspace/worker /workspace/worker
+CMD ["node", "worker.js"]

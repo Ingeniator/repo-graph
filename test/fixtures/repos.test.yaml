@@ -1,0 +1,26 @@
+repos:
+  - name: baseimages
+    path: ./baseimages
+    images:
+      - name: ghcr.io/ingeniator/base-node:18
+        dockerfile: ./Dockerfile
+
+  - name: service-a
+    path: ./service-a
+
+  - name: service-b
+    path: ./service-b
+
+  - name: monorepo
+    path: ./monorepo
+
+settings:
+  dockerfilePatterns:
+    - Dockerfile
+    - Dockerfile.*
+
+imageOwnership:
+  ghcr.io/ingeniator/base-node:18:
+    repo: baseimages
+    dockerfile: Dockerfile
+    confidence: configured
