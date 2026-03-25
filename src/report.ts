@@ -22,6 +22,7 @@ export function renderTextReport(graph: ScanGraph, options: ProjectGraphOptions 
   lines.push(`  Internal edges: ${projected.metadata.internalEdgeCount}`);
   lines.push(`  External edges: ${projected.metadata.externalEdgeCount}`);
   lines.push(`  Unresolved images: ${projected.metadata.unresolvedCount}`);
+  lines.push(`  Warnings: ${projected.metadata.warningCount}`);
   if (projected.metadata.dockerfilePatterns.length) {
     lines.push(`  Dockerfile patterns: ${projected.metadata.dockerfilePatterns.join(', ')}`);
   }
@@ -41,6 +42,16 @@ export function renderTextReport(graph: ScanGraph, options: ProjectGraphOptions 
       const from = projected.nodes.find((node) => node.id === edge.from)?.label ?? edge.from;
       const to = projected.nodes.find((node) => node.id === edge.to)?.label ?? edge.to;
       lines.push(`  - ${from} -> ${to} [${edge.confidence}] (${edge.rawDependency})`);
+    }
+  }
+  lines.push('');
+
+  lines.push('Source diagnostics:');
+  if (!projected.metadata.sourceDiagnostics.length) {
+    lines.push('  - none');
+  } else {
+    for (const diagnostic of projected.metadata.sourceDiagnostics) {
+      lines.push(`  - [${diagnostic.severity}] ${diagnostic.repo}: ${diagnostic.message}`);
     }
   }
   lines.push('');

@@ -1,8 +1,9 @@
-import { RawConfig, ScanGraph, RepoNode, GraphEdge, OwnershipResolution } from './types.js';
+import { RawConfig, ScanGraph, RepoNode, GraphEdge, OwnershipResolution, SourceDiagnostic } from './types.js';
 import { discoverDockerfiles } from './fs-utils.js';
 import { parseDockerfile } from './dockerfile-parser.js';
 
 export function buildGraph(config: RawConfig): ScanGraph {
+  const sourceDiagnostics: SourceDiagnostic[] = [];
   const repos: RepoNode[] = config.repos.map((repo) => {
     if (!repo.path) {
       throw new Error(`Repo '${repo.name}' has no resolved path. Run source resolution before buildGraph.`);
@@ -21,6 +22,7 @@ export function buildGraph(config: RawConfig): ScanGraph {
   const unresolvedImages = new Set<string>();
   let internalEdgeCount = 0;
   let externalEdgeCount = 0;
+  let warningCount = repos.reduce((total, repo) => total + repo.dockerfiles.reduce((sum, dockerfile) => sum + dockerfile.warnings.length, 0), 0);
 
   for (const repo of repos) {
     for (const dockerfile of repo.dockerfiles) {
@@ -31,6 +33,18 @@ export function buildGraph(config: RawConfig): ScanGraph {
 
         if (ownership.confidence === 'unresolved') {
           unresolvedImages.add(dependency.resolved);
+          if (!dependency.warnings?.some((warning) => warning.code === 'ownership.unresolved')) {
+            dependency.warnings = [
+              ...(dependency.warnings ?? []),
+              {
+                code: 'ownership.unresolved',
+                message: ownership.reason,
+                line: dependency.sourceLine,
+                instruction: dependency.sourceInstruction,
+              },
+            ];
+            warningCount += 1;
+          }
         }
 
         const targetScope = ownership.repo ? 'internal' : 'external';
@@ -47,7 +61,10 @@ export function buildGraph(config: RawConfig): ScanGraph {
           confidence: ownership.confidence,
           metadata: {
             dependency: dependency.resolved,
+            rawDependency: dependency.raw,
             sourceInstruction: dependency.sourceInstruction,
+            sourceLine: String(dependency.sourceLine),
+            warningCount: dependency.warnings?.length ? String(dependency.warnings.length) : undefined,
             repo: ownership.repo,
             dockerfile: ownership.dockerfile,
             reason: ownership.reason,
@@ -70,7 +87,9 @@ export function buildGraph(config: RawConfig): ScanGraph {
       internalEdgeCount,
       externalEdgeCount,
       unresolvedCount: unresolvedImages.size,
+      warningCount,
       dockerfilePatterns: config.settings?.dockerfilePatterns ?? [],
+      sourceDiagnostics,
     },
   };
 }
@@ -93,7 +112,7 @@ function resolveOwnership(config: RawConfig, repos: RepoNode[], image: string): 
 
   return {
     confidence: 'unresolved',
-    reason: image.includes('${') ? 'contains unresolved ARG substitution' : 'no configured or inferred owner found',
+    reason: image.includes('${') || image.includes('$') ? 'contains unresolved ARG substitution' : 'no configured or inferred owner found',
   };
 }
 

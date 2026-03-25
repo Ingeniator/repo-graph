@@ -7,7 +7,7 @@ import { renderTextReport } from './report.js';
 import { renderDot, renderMermaid, renderSvgRepos } from './renderers.js';
 import { resolveRepoSources } from './repo-sources.js';
 import { ProjectGraphOptions } from './project.js';
-import { ScanGraph } from './types.js';
+import { ScanGraph, SourceDiagnostic } from './types.js';
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
@@ -37,9 +37,11 @@ function handleScan(args: string[]): void {
   const outDir = getFlagValue(args, '--out') ?? './output';
   const refresh = hasFlag(args, '--refresh');
   const cacheDir = getFlagValue(args, '--cache-dir');
-  const resolvedConfig = resolveRepoSources(loadConfig(configPath), { refresh, cacheDir });
+  const sourceDiagnostics: SourceDiagnostic[] = [];
+  const resolvedConfig = resolveRepoSources(loadConfig(configPath), { refresh, cacheDir, diagnostics: sourceDiagnostics });
   const graph = buildGraph(resolvedConfig);
   graph.metadata.configPath = path.resolve(configPath);
+  graph.metadata.sourceDiagnostics = sourceDiagnostics;
   fs.mkdirSync(outDir, { recursive: true });
   const outputPath = path.join(outDir, 'graph.json');
   fs.writeFileSync(outputPath, JSON.stringify(graph, null, 2));

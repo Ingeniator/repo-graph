@@ -36,6 +36,7 @@ export function stabilizeGraph(graph: ScanGraph): ScanGraph {
       ...graph.metadata,
       configPath: graph.metadata.configPath ? normalizeFixturePath(graph.metadata.configPath) : undefined,
       dockerfilePatterns: [...graph.metadata.dockerfilePatterns].sort(),
+      sourceDiagnostics: [...graph.metadata.sourceDiagnostics].sort((a, b) => `${a.repo}:${a.code}:${a.message}`.localeCompare(`${b.repo}:${b.code}:${b.message}`)),
     },
   };
 }

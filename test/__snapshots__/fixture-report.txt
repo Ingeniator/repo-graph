@@ -10,6 +10,7 @@ Scan metadata:
   Internal edges: 4
   External edges: 2
   Unresolved images: 1
+  Warnings: 2
   Dockerfile patterns: Dockerfile, Dockerfile.*
 
 Nodes:
@@ -27,6 +28,9 @@ Edges:
   - monorepo/apps/worker/Dockerfile.worker -> node:20-alpine [unresolved] (node:20-alpine)
   - service-a/Dockerfile -> baseimages/Dockerfile [configured] (ghcr.io/ingeniator/base-node:18)
   - service-b/Dockerfile -> baseimages/Dockerfile [configured] (ghcr.io/ingeniator/base-node:18)
+
+Source diagnostics:
+  - none
 
 Unresolved image ownership:
   - node:20-alpine

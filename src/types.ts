@@ -32,6 +32,7 @@ export interface DockerfileRecord {
   serviceName: string;
   declaredImages: string[];
   dependencies: DockerDependency[];
+  warnings: ScanWarning[];
 }
 
 export interface DockerDependency {
@@ -39,8 +40,10 @@ export interface DockerDependency {
   resolved: string;
   type: 'image';
   sourceInstruction: string;
+  sourceLine: number;
   confidence: ResolutionConfidence;
   ownership?: OwnershipResolution;
+  warnings?: ScanWarning[];
 }
 
 export interface OwnershipResolution {
@@ -64,6 +67,25 @@ export interface GraphEdge {
   metadata: Record<string, string | undefined>;
 }
 
+export interface SourceDiagnostic {
+  repo: string;
+  source: string;
+  cachePath?: string;
+  ref?: string;
+  severity: 'info' | 'warning' | 'error';
+  code: string;
+  message: string;
+  details?: string;
+}
+
+export interface ScanWarning {
+  code: string;
+  message: string;
+  line?: number;
+  instruction?: string;
+  details?: string;
+}
+
 export interface ScanMetadata {
   configPath?: string;
   repoCount: number;
@@ -72,7 +94,9 @@ export interface ScanMetadata {
   internalEdgeCount: number;
   externalEdgeCount: number;
   unresolvedCount: number;
+  warningCount: number;
   dockerfilePatterns: string[];
+  sourceDiagnostics: SourceDiagnostic[];
 }
 
 export interface ScanGraph {
@@ -86,4 +110,5 @@ export interface ScanGraph {
 export interface RepoResolutionOptions {
   cacheDir?: string;
   refresh?: boolean;
+  diagnostics?: SourceDiagnostic[];
 }
