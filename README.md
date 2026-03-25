@@ -1,208 +1,220 @@
 # repo-graph
 
-Conversation log
+A CLI tool for discovering Docker image dependencies across multiple repositories and rendering them as a graph.
 
-## User
-agree. can you create git repo and put that conversation in readme file
+## Product Summary
 
-## Assistant
-Sure — I can create the local git repo, but I need one detail first:
+`repo-graph` scans one or more repositories, finds Dockerfiles, parses image relationships, resolves internal image ownership where possible, and produces outputs that help answer questions like:
 
-which conversation do you want in `README.md`?
-- this current chat
-- some exported chat/log file
-- a pasted conversation text
+- Which services depend on a shared base image?
+- What does a given service depend on?
+- Which image references are unresolved or only inferred?
+- What would be impacted by changing a base image?
 
-If you want, send:
-1. repo name
-2. conversation text or file
-3. optional folder path
+The goal for V1 is a practical, trustworthy dependency graph for Docker-based repos and monorepos.
 
-Then I’ll set it up.
+## Problem
 
-## User
-repo-graph
+Teams often maintain multiple services and base images spread across several repositories. Dependency relationships are hard to understand because:
 
-## User
-2. ARG substitution
+- Dockerfiles are distributed across many repos
+- internal images may be built in one repo and consumed in another
+- monorepos may contain many Dockerfiles for different services
+- multi-stage Dockerfiles can create false positives
+- image references may be dynamic via `ARG` substitution
 
-Example:
+Without a clear graph, it is difficult to assess impact, standardize base images, or identify outdated dependencies.
+
+## Goals
+
+V1 should:
+
+- scan 5–10 repositories reliably
+- discover Dockerfiles across normal repos and monorepos
+- parse image dependencies from Dockerfiles
+- distinguish real image dependencies from multi-stage aliases
+- resolve at least simple `ARG`-based `FROM` substitutions
+- support multiple graph views
+- mark confidence levels for mappings
+- output machine-readable and human-readable reports
+
+## Non-Goals for V1
+
+These are valuable but not required for the first useful release:
+
+- full Dockerfile evaluation parity with Docker BuildKit
+- deep CI/CD pipeline analysis
+- automatic verification of published tags across registries
+- dependency remediation or automatic updates
+
+## Core Requirements
+
+### 1. Dockerfile parsing
+
+The parser must support at least:
+
+- `ARG`
+- `FROM`
+- `AS`
+
+It should resolve simple default substitutions such as:
+
+```Dockerfile
 ARG BASE=node:20-alpine
 FROM ${BASE}
-Need at least simple default resolution.
+```
 
-3. Multi-stage builds
+### 2. Multi-stage build awareness
 
-FROM builder is not an image dependency. Don’t treat it as one.
+A stage alias is not an external image dependency.
 
-4. Monorepos
+Example:
 
-A repo may contain many Dockerfiles for many services.
-Your graph should support:
+```Dockerfile
+FROM node:20-alpine AS builder
+FROM builder AS final
+```
 
-• repo-level view
-• dockerfile/service-level view
+`builder` must not be treated as an image dependency in the second `FROM`.
 
-5. False confidence
+### 3. Monorepo support
 
-Tool should mark uncertain mappings:
+A repository may contain many Dockerfiles representing many services.
 
-• inferred
-• configured
-• unresolved
+The graph must support:
 
-That will make it trustworthy.
+- repo-level view
+- dockerfile/service-level view
 
-───
+### 4. Trustworthy resolution states
 
-14. Recommended UX
+Every internal image mapping should carry a confidence/status indicator:
 
-Command examples
+- `configured` — explicitly mapped in config
+- `inferred` — inferred by heuristics
+- `unresolved` — could not be mapped confidently
+
+This is required to avoid false confidence.
+
+## Recommended UX
+
+### Commands
+
+```bash
 repo-graph scan repos.yaml --out ./output
 repo-graph report ./output/graph.json
 repo-graph render ./output/graph.json --format mermaid > dependency-graph.mmd
 repo-graph render ./output/graph.json --format dot > dependency-graph.dot
-Helpful flags
+```
 
-• --focus baseimages
-• --depth 2
-• --include-external
-• --exclude-external
-• --view repo|dockerfile|image
-• --cached / --refresh
+### Helpful flags
 
-───
+- `--focus baseimages`
+- `--depth 2`
+- `--include-external`
+- `--exclude-external`
+- `--view repo|dockerfile|image`
+- `--cached`
+- `--refresh`
 
-15. Example output views
+## Example Questions the Tool Should Answer
 
-A. “Who depends on baseimages?”
+### Who depends on `baseimages`?
+
+```text
 baseimages
 ├── service-a
 ├── service-b
 └── service-c
-B. “What does service-a depend on?”
+```
+
+### What does `service-a` depend on?
+
+```text
 service-a
 └── ghcr.io/ingeniator/base-node:18
 └── node:20-alpine
-C. “Unresolved”
+```
+
+### What is unresolved?
+
+```text
 Unresolved image ownership:
 - mycorp/internal-tools:latest
 - ${BASE_IMAGE}
-───
+```
 
-16. Minimal implementation order
+## Architecture Direction
 
-If I were building this, I’d do exactly this order:
+Recommended implementation choices:
 
-Step 1
+- CLI application
+- TypeScript
+- YAML config
+- explicit image ownership mapping in config
+- graph output focused on repo/image relationships
+- Mermaid output for easy visualization
 
-Config loader
+This is the best usefulness-to-complexity tradeoff for V1.
 
-Step 2
+## Minimal Implementation Order
 
-Repo clone/update cache
-Example cache dir:
-.cache/repos/<repo-name>
-Step 3
+1. Config loader
+2. Repo clone/update cache
+   - example cache dir: `.cache/repos/<repo-name>`
+3. Dockerfile discovery
+4. Simple parser for:
+   - `ARG`
+   - `FROM`
+   - `AS`
+5. Graph model
+6. JSON output
+7. Mermaid renderer
+8. Text report
+9. Focus/filter options
 
-Dockerfile discovery
+That sequence is enough for a useful first release.
 
-Step 4
+## Output Requirements
 
-Simple parser:
+V1 should produce:
 
-• ARG
-• FROM
-• AS
+- JSON graph
+- Mermaid diagram
+- readable text summary/report
 
-Step 5
+## Definition of Done for V1
 
-Graph model
+V1 is successful if it can:
 
-Step 6
+- scan 5–10 repos
+- correctly detect Dockerfiles
+- resolve at least 80% of internal image links
+- produce JSON, Mermaid, and readable summary output
+- reliably answer: “which services depend on baseimages?”
 
-JSON output
+If it can do that consistently, it is already useful.
 
-Step 7
+## Future Enhancements
 
-Mermaid renderer
+Possible next steps after V1:
 
-Step 8
+- parse GitHub Actions to discover actually built/pushed tags
+- detect base image drift across services
+- visualize staleness of dependencies
+- estimate change impact from base image updates
+- integrate Renovate/Dependabot data
+- export Markdown documentation
 
-Text report
+## Naming
 
-Step 9
+Reasonable names considered:
 
-Focus/filter options
+- `repo-graph`
+- `dockerlineage`
+- `image-map`
+- `dockertree`
+- `baseimage-radar`
+- `image-lineage`
 
-That’s enough for a useful first release.
-
-───
-
-17. Nice future additions
-
-These could become very valuable:
-
-• parse GitHub Actions to find actual built/pushed tags
-• detect base image drift:
-• service-a uses base-node:16
-• service-b uses base-node:18
-• visualize staleness:
-• “service-c depends on old base”
-• show build impact:
-• “changing baseimages/base-node affects 7 services”
-• integrate with Renovate/Dependabot data
-• export to Markdown for docs
-
-───
-
-18. Recommendation on naming
-
-Some decent names:
-
-• repo-graph
-• dockerlineage
-• image-map
-• dockertree
-• baseimage-radar
-
-I’d pick something boring and clear:
-repo-graph or image-lineage.
-
-───
-
-19. Definition of done for V1
-
-I’d call V1 successful if it can:
-
-• scan 5–10 repos
-• correctly detect all Dockerfiles
-• resolve at least 80% of internal image links
-• produce:
-• JSON graph
-• Mermaid diagram
-• readable summary
-• answer:
-• “which services depend on baseimages?”
-
-If it can do that reliably, it’s already worth using.
-
-───
-
-20. My concrete recommendation
-
-Build:
-
-• CLI
-• TypeScript
-• YAML config
-• Mermaid output
-• repo/image graph
-• explicit image ownership mapping in config
-
-That is the best tradeoff between usefulness and complexity.
-
-If you want, next I can do one of two things:
-
-1. design the exact file structure and interfaces
-2. generate the MVP scaffold in code inside a new repo/workspace folder
+Recommended choice: `repo-graph`.
