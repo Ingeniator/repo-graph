@@ -200,6 +200,12 @@ Preview:
 
 The source fixture lives in `test/fixtures/`.
 
+Refresh the checked-in example files with:
+
+```bash
+npm run fixture:generate-examples
+```
+
 ## Tests
 
 The local fixture is also used as an automated snapshot-style test suite.

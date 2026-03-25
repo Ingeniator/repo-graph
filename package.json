@@ -13,7 +13,8 @@
     "report": "tsx src/cli.ts report",
     "render": "tsx src/cli.ts render",
     "test": "node --test --import tsx test/**/*.test.ts",
-    "snapshots:update": "tsx scripts/update-snapshots.ts"
+    "snapshots:update": "tsx scripts/update-snapshots.ts",
+    "fixture:generate-examples": "tsx scripts/generate-fixture-examples.ts"
   },
   "dependencies": {
     "yaml": "^2.8.1"

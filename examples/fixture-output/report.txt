@@ -1,5 +1,5 @@
 repo-graph report
-Generated: 2026-03-25T21:40:53.628Z
+Generated: 2026-03-25T21:51:44.908Z
 
 Repo: baseimages
   Path: /home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/baseimages
