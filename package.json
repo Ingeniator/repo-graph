@@ -11,7 +11,8 @@
     "dev": "tsx src/cli.ts",
     "scan": "tsx src/cli.ts scan",
     "report": "tsx src/cli.ts report",
-    "render": "tsx src/cli.ts render"
+    "render": "tsx src/cli.ts render",
+    "test": "node --test --import tsx test/**/*.test.ts"
   },
   "dependencies": {
     "yaml": "^2.8.1"

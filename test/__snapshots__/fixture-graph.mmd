@@ -1,0 +1,22 @@
+graph TD
+  baseimages["baseimages"]
+  baseimages_Dockerfile["baseimages/Dockerfile"]
+  baseimages --> baseimages_Dockerfile
+  monorepo["monorepo"]
+  monorepo_apps_api_Dockerfile["monorepo/apps/api/Dockerfile"]
+  monorepo --> monorepo_apps_api_Dockerfile
+  monorepo_apps_worker_Dockerfile_worker["monorepo/apps/worker/Dockerfile.worker"]
+  monorepo --> monorepo_apps_worker_Dockerfile_worker
+  service_a["service-a"]
+  service_a_Dockerfile["service-a/Dockerfile"]
+  service_a --> service_a_Dockerfile
+  service_b["service-b"]
+  service_b_Dockerfile["service-b/Dockerfile"]
+  service_b --> service_b_Dockerfile
+  node_20_alpine["node:20-alpine"]
+  baseimages_Dockerfile -->|unresolved| node_20_alpine
+  monorepo_apps_api_Dockerfile -->|configured| baseimages
+  monorepo_apps_worker_Dockerfile_worker -->|configured| baseimages
+  monorepo_apps_worker_Dockerfile_worker -->|unresolved| node_20_alpine
+  service_a_Dockerfile -->|configured| baseimages
+  service_b_Dockerfile -->|configured| baseimages

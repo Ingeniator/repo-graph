@@ -200,6 +200,24 @@ Preview:
 
 The source fixture lives in `test/fixtures/`.
 
+## Tests
+
+The local fixture is also used as an automated snapshot-style test suite.
+
+Run:
+
+```bash
+npm test
+```
+
+Current snapshots cover:
+
+- stabilized `graph.json`
+- text report
+- Mermaid output
+- DOT output
+- `svgrepos` SVG output
+
 ## Definition of Done for V1
 
 V1 is successful if it can:

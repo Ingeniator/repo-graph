@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="440" viewBox="0 0 1400 440">
+<style>
+  .title { font: 700 24px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; fill: #111827; }
+  .subtitle { font: 400 13px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; fill: #4b5563; }
+  .coltitle { font: 700 16px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; fill: #111827; }
+  .label { font: 13px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; fill: #111827; }
+  .small { font: 12px ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; fill: #374151; }
+  .edge { stroke: #94a3b8; stroke-width: 2; fill: none; }
+  .edge-configured { stroke: #059669; }
+  .edge-unresolved { stroke: #dc2626; stroke-dasharray: 6 5; }
+  .edge-inferred { stroke: #2563eb; stroke-dasharray: 3 4; }
+  .box { stroke: #cbd5e1; stroke-width: 1.2; rx: 10; ry: 10; }
+</style>
+<defs>
+  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
+  </marker>
+  <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#059669" />
+  </marker>
+  <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#dc2626" />
+  </marker>
+  <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+    <path d="M 0 0 L 10 5 L 0 10 z" fill="#2563eb" />
+  </marker>
+</defs>
+<rect x="0" y="0" width="1400" height="440" fill="#ffffff" />
+<text x="40" y="32" class="title">repo-graph dependency map</text>
+<text x="40" y="52" class="subtitle">Green=configured, blue=inferred, red dashed=unresolved</text>
+<text x="40" y="88" class="coltitle">Repos</text>
+<text x="460" y="88" class="coltitle">Dockerfiles</text>
+<text x="880" y="88" class="coltitle">Resolved targets</text>
+<path d="M 820 107 C 850 107, 850 323, 880 323" class="edge edge-unresolved" marker-end="url(#arrow-red)"/>
+<path d="M 820 161 C 850 161, 850 107, 880 107" class="edge edge-configured" marker-end="url(#arrow-green)"/>
+<path d="M 820 215 C 850 215, 850 107, 880 107" class="edge edge-configured" marker-end="url(#arrow-green)"/>
+<path d="M 820 215 C 850 215, 850 323, 880 323" class="edge edge-unresolved" marker-end="url(#arrow-red)"/>
+<path d="M 820 269 C 850 269, 850 107, 880 107" class="edge edge-configured" marker-end="url(#arrow-green)"/>
+<path d="M 820 323 C 850 323, 850 107, 880 107" class="edge edge-configured" marker-end="url(#arrow-green)"/>
+<rect class="box" x="880" y="90" width="360" height="34" fill="#dbeafe" />
+<text x="894" y="111" class="label">baseimages</text>
+<rect class="box" x="880" y="144" width="360" height="34" fill="#dbeafe" />
+<text x="894" y="165" class="label">monorepo</text>
+<rect class="box" x="880" y="198" width="360" height="34" fill="#dbeafe" />
+<text x="894" y="219" class="label">service-a</text>
+<rect class="box" x="880" y="252" width="360" height="34" fill="#dbeafe" />
+<text x="894" y="273" class="label">service-b</text>
+<rect class="box" x="460" y="90" width="360" height="34" fill="#dcfce7" />
+<text x="474" y="111" class="label">baseimages/Dockerfile</text>
+<rect class="box" x="460" y="144" width="360" height="34" fill="#dcfce7" />
+<text x="474" y="165" class="label">monorepo/apps/api/Dockerfile</text>
+<rect class="box" x="460" y="198" width="360" height="34" fill="#dcfce7" />
+<text x="474" y="219" class="label">monorepo/apps/worker/Dockerfile.worker</text>
+<rect class="box" x="460" y="252" width="360" height="34" fill="#dcfce7" />
+<text x="474" y="273" class="label">service-a/Dockerfile</text>
+<rect class="box" x="460" y="306" width="360" height="34" fill="#dcfce7" />
+<text x="474" y="327" class="label">service-b/Dockerfile</text>
+<rect class="box" x="880" y="90" width="360" height="34" fill="#fef3c7" />
+<text x="894" y="111" class="label">baseimages</text>
+<rect class="box" x="880" y="144" width="360" height="34" fill="#fef3c7" />
+<text x="894" y="165" class="label">monorepo</text>
+<rect class="box" x="880" y="198" width="360" height="34" fill="#fef3c7" />
+<text x="894" y="219" class="label">service-a</text>
+<rect class="box" x="880" y="252" width="360" height="34" fill="#fef3c7" />
+<text x="894" y="273" class="label">service-b</text>
+<rect class="box" x="880" y="306" width="360" height="34" fill="#fee2e2" />
+<text x="894" y="327" class="label">node:20-alpine</text>
+<line x1="40" y1="410" x2="70" y2="410" class="edge edge-configured" marker-end="url(#arrow-green)"/>
+<text x="80" y="414" class="small">configured</text>
+<line x1="190" y1="410" x2="220" y2="410" class="edge edge-inferred" marker-end="url(#arrow-blue)"/>
+<text x="230" y="414" class="small">inferred</text>
+<line x1="310" y1="410" x2="340" y2="410" class="edge edge-unresolved" marker-end="url(#arrow-red)"/>
+<text x="350" y="414" class="small">unresolved</text>
+</svg>
