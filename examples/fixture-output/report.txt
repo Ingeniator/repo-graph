@@ -1,0 +1,32 @@
+repo-graph report
+Generated: 2026-03-25T21:40:53.628Z
+
+Repo: baseimages
+  Path: /home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/baseimages
+  Dockerfiles: 1
+    - Dockerfile
+      -> node:20-alpine [unresolved] (node:20-alpine)
+
+Repo: service-a
+  Path: /home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/service-a
+  Dockerfiles: 1
+    - Dockerfile
+      -> baseimages [configured] (ghcr.io/ingeniator/base-node:18)
+
+Repo: service-b
+  Path: /home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/service-b
+  Dockerfiles: 1
+    - Dockerfile
+      -> baseimages [configured] (ghcr.io/ingeniator/base-node:18)
+
+Repo: monorepo
+  Path: /home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/monorepo
+  Dockerfiles: 2
+    - apps/api/Dockerfile
+      -> baseimages [configured] (ghcr.io/ingeniator/base-node:18)
+    - apps/worker/Dockerfile.worker
+      -> node:20-alpine [unresolved] (node:20-alpine)
+      -> baseimages [configured] (ghcr.io/ingeniator/base-node:18)
+
+Unresolved image ownership:
+  - node:20-alpine

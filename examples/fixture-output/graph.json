@@ -1,0 +1,234 @@
+{
+  "generatedAt": "2026-03-25T21:40:53.628Z",
+  "repos": [
+    {
+      "name": "baseimages",
+      "path": "/home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/baseimages",
+      "dockerfiles": [
+        {
+          "id": "baseimages:Dockerfile",
+          "repo": "baseimages",
+          "path": "Dockerfile",
+          "absolutePath": "/home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/baseimages/Dockerfile",
+          "serviceName": "Dockerfile",
+          "declaredImages": [
+            "ghcr.io/ingeniator/base-node:18"
+          ],
+          "dependencies": [
+            {
+              "raw": "node:20-alpine",
+              "resolved": "node:20-alpine",
+              "type": "image",
+              "sourceInstruction": "FROM node:20-alpine",
+              "confidence": "unresolved",
+              "ownership": {
+                "confidence": "unresolved",
+                "reason": "no configured or inferred owner found"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "service-a",
+      "path": "/home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/service-a",
+      "dockerfiles": [
+        {
+          "id": "service-a:Dockerfile",
+          "repo": "service-a",
+          "path": "Dockerfile",
+          "absolutePath": "/home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/service-a/Dockerfile",
+          "serviceName": "Dockerfile",
+          "declaredImages": [],
+          "dependencies": [
+            {
+              "raw": "ghcr.io/ingeniator/base-node:18",
+              "resolved": "ghcr.io/ingeniator/base-node:18",
+              "type": "image",
+              "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18 AS builder",
+              "confidence": "configured",
+              "ownership": {
+                "repo": "baseimages",
+                "dockerfile": "Dockerfile",
+                "confidence": "configured",
+                "reason": "matched via imageOwnership config"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "service-b",
+      "path": "/home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/service-b",
+      "dockerfiles": [
+        {
+          "id": "service-b:Dockerfile",
+          "repo": "service-b",
+          "path": "Dockerfile",
+          "absolutePath": "/home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/service-b/Dockerfile",
+          "serviceName": "Dockerfile",
+          "declaredImages": [],
+          "dependencies": [
+            {
+              "raw": "${BASE_IMAGE}",
+              "resolved": "ghcr.io/ingeniator/base-node:18",
+              "type": "image",
+              "sourceInstruction": "FROM ${BASE_IMAGE}",
+              "confidence": "configured",
+              "ownership": {
+                "repo": "baseimages",
+                "dockerfile": "Dockerfile",
+                "confidence": "configured",
+                "reason": "matched via imageOwnership config"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "monorepo",
+      "path": "/home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/monorepo",
+      "dockerfiles": [
+        {
+          "id": "monorepo:apps/api/Dockerfile",
+          "repo": "monorepo",
+          "path": "apps/api/Dockerfile",
+          "absolutePath": "/home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/monorepo/apps/api/Dockerfile",
+          "serviceName": "apps/api",
+          "declaredImages": [],
+          "dependencies": [
+            {
+              "raw": "ghcr.io/ingeniator/base-node:18",
+              "resolved": "ghcr.io/ingeniator/base-node:18",
+              "type": "image",
+              "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18",
+              "confidence": "configured",
+              "ownership": {
+                "repo": "baseimages",
+                "dockerfile": "Dockerfile",
+                "confidence": "configured",
+                "reason": "matched via imageOwnership config"
+              }
+            }
+          ]
+        },
+        {
+          "id": "monorepo:apps/worker/Dockerfile.worker",
+          "repo": "monorepo",
+          "path": "apps/worker/Dockerfile.worker",
+          "absolutePath": "/home/openclaw/.openclaw/workspace/repo-graph/test/fixtures/monorepo/apps/worker/Dockerfile.worker",
+          "serviceName": "apps/worker",
+          "declaredImages": [],
+          "dependencies": [
+            {
+              "raw": "${BASE}",
+              "resolved": "node:20-alpine",
+              "type": "image",
+              "sourceInstruction": "FROM ${BASE} AS base",
+              "confidence": "unresolved",
+              "ownership": {
+                "confidence": "unresolved",
+                "reason": "no configured or inferred owner found"
+              }
+            },
+            {
+              "raw": "ghcr.io/ingeniator/base-node:18",
+              "resolved": "ghcr.io/ingeniator/base-node:18",
+              "type": "image",
+              "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18 AS runtime",
+              "confidence": "configured",
+              "ownership": {
+                "repo": "baseimages",
+                "dockerfile": "Dockerfile",
+                "confidence": "configured",
+                "reason": "matched via imageOwnership config"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "from": "baseimages:Dockerfile",
+      "to": "node:20-alpine",
+      "kind": "depends_on",
+      "confidence": "unresolved",
+      "metadata": {
+        "dependency": "node:20-alpine",
+        "sourceInstruction": "FROM node:20-alpine",
+        "reason": "no configured or inferred owner found"
+      }
+    },
+    {
+      "from": "service-a:Dockerfile",
+      "to": "baseimages",
+      "kind": "depends_on",
+      "confidence": "configured",
+      "metadata": {
+        "dependency": "ghcr.io/ingeniator/base-node:18",
+        "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18 AS builder",
+        "repo": "baseimages",
+        "dockerfile": "Dockerfile",
+        "reason": "matched via imageOwnership config"
+      }
+    },
+    {
+      "from": "service-b:Dockerfile",
+      "to": "baseimages",
+      "kind": "depends_on",
+      "confidence": "configured",
+      "metadata": {
+        "dependency": "ghcr.io/ingeniator/base-node:18",
+        "sourceInstruction": "FROM ${BASE_IMAGE}",
+        "repo": "baseimages",
+        "dockerfile": "Dockerfile",
+        "reason": "matched via imageOwnership config"
+      }
+    },
+    {
+      "from": "monorepo:apps/api/Dockerfile",
+      "to": "baseimages",
+      "kind": "depends_on",
+      "confidence": "configured",
+      "metadata": {
+        "dependency": "ghcr.io/ingeniator/base-node:18",
+        "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18",
+        "repo": "baseimages",
+        "dockerfile": "Dockerfile",
+        "reason": "matched via imageOwnership config"
+      }
+    },
+    {
+      "from": "monorepo:apps/worker/Dockerfile.worker",
+      "to": "node:20-alpine",
+      "kind": "depends_on",
+      "confidence": "unresolved",
+      "metadata": {
+        "dependency": "node:20-alpine",
+        "sourceInstruction": "FROM ${BASE} AS base",
+        "reason": "no configured or inferred owner found"
+      }
+    },
+    {
+      "from": "monorepo:apps/worker/Dockerfile.worker",
+      "to": "baseimages",
+      "kind": "depends_on",
+      "confidence": "configured",
+      "metadata": {
+        "dependency": "ghcr.io/ingeniator/base-node:18",
+        "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18 AS runtime",
+        "repo": "baseimages",
+        "dockerfile": "Dockerfile",
+        "reason": "matched via imageOwnership config"
+      }
+    }
+  ],
+  "unresolvedImages": [
+    "node:20-alpine"
+  ]
+}

@@ -183,6 +183,17 @@ V1 should produce:
 - Mermaid diagram
 - readable text summary/report
 
+## Example Output
+
+A checked-in example generated from the local fixture set is available in:
+
+- `examples/fixture-output/graph.json`
+- `examples/fixture-output/report.txt`
+- `examples/fixture-output/dependency-graph.mmd`
+- `examples/fixture-output/dependency-graph.dot`
+
+The source fixture lives in `test/fixtures/`.
+
 ## Definition of Done for V1
 
 V1 is successful if it can:
