@@ -32,6 +32,11 @@ export function stabilizeGraph(graph: ScanGraph): ScanGraph {
       }))
       .sort((a, b) => `${a.from}->${a.to}:${a.confidence}`.localeCompare(`${b.from}->${b.to}:${b.confidence}`)),
     unresolvedImages: [...graph.unresolvedImages].sort(),
+    metadata: {
+      ...graph.metadata,
+      configPath: graph.metadata.configPath ? normalizeFixturePath(graph.metadata.configPath) : undefined,
+      dockerfilePatterns: [...graph.metadata.dockerfilePatterns].sort(),
+    },
   };
 }
 

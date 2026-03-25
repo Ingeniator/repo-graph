@@ -1,4 +1,4 @@
-import { RawConfig, ScanGraph, RepoNode, GraphEdge, OwnershipResolution, ResolutionConfidence } from './types.js';
+import { RawConfig, ScanGraph, RepoNode, GraphEdge, OwnershipResolution } from './types.js';
 import { discoverDockerfiles } from './fs-utils.js';
 import { parseDockerfile } from './dockerfile-parser.js';
 
@@ -19,6 +19,8 @@ export function buildGraph(config: RawConfig): ScanGraph {
 
   const edges: GraphEdge[] = [];
   const unresolvedImages = new Set<string>();
+  let internalEdgeCount = 0;
+  let externalEdgeCount = 0;
 
   for (const repo of repos) {
     for (const dockerfile of repo.dockerfiles) {
@@ -29,6 +31,13 @@ export function buildGraph(config: RawConfig): ScanGraph {
 
         if (ownership.confidence === 'unresolved') {
           unresolvedImages.add(dependency.resolved);
+        }
+
+        const targetScope = ownership.repo ? 'internal' : 'external';
+        if (targetScope === 'internal') {
+          internalEdgeCount += 1;
+        } else {
+          externalEdgeCount += 1;
         }
 
         edges.push({
@@ -42,6 +51,7 @@ export function buildGraph(config: RawConfig): ScanGraph {
             repo: ownership.repo,
             dockerfile: ownership.dockerfile,
             reason: ownership.reason,
+            targetScope,
           },
         });
       }
@@ -53,6 +63,15 @@ export function buildGraph(config: RawConfig): ScanGraph {
     repos,
     edges,
     unresolvedImages: [...unresolvedImages].sort(),
+    metadata: {
+      repoCount: repos.length,
+      dockerfileCount: repos.reduce((total, repo) => total + repo.dockerfiles.length, 0),
+      dependencyCount: edges.length,
+      internalEdgeCount,
+      externalEdgeCount,
+      unresolvedCount: unresolvedImages.size,
+      dockerfilePatterns: config.settings?.dockerfilePatterns ?? [],
+    },
   };
 }
 
@@ -73,7 +92,7 @@ function resolveOwnership(config: RawConfig, repos: RepoNode[], image: string): 
   }
 
   return {
-    confidence: image.includes('${') ? 'unresolved' : 'unresolved',
+    confidence: 'unresolved',
     reason: image.includes('${') ? 'contains unresolved ARG substitution' : 'no configured or inferred owner found',
   };
 }

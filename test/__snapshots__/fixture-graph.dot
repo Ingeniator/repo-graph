@@ -1,23 +1,14 @@
 digraph RepoGraph {
-  baseimages [label="baseimages"];
   baseimages_Dockerfile [label="baseimages/Dockerfile"];
-  baseimages -> baseimages_Dockerfile;
-  monorepo [label="monorepo"];
   monorepo_apps_api_Dockerfile [label="monorepo/apps/api/Dockerfile"];
-  monorepo -> monorepo_apps_api_Dockerfile;
   monorepo_apps_worker_Dockerfile_worker [label="monorepo/apps/worker/Dockerfile.worker"];
-  monorepo -> monorepo_apps_worker_Dockerfile_worker;
-  service_a [label="service-a"];
-  service_a_Dockerfile [label="service-a/Dockerfile"];
-  service_a -> service_a_Dockerfile;
-  service_b [label="service-b"];
-  service_b_Dockerfile [label="service-b/Dockerfile"];
-  service_b -> service_b_Dockerfile;
   node_20_alpine [label="node:20-alpine"];
+  service_a_Dockerfile [label="service-a/Dockerfile"];
+  service_b_Dockerfile [label="service-b/Dockerfile"];
   baseimages_Dockerfile -> node_20_alpine [label="unresolved"];
-  monorepo_apps_api_Dockerfile -> baseimages [label="configured"];
-  monorepo_apps_worker_Dockerfile_worker -> baseimages [label="configured"];
+  monorepo_apps_api_Dockerfile -> baseimages_Dockerfile [label="configured"];
+  monorepo_apps_worker_Dockerfile_worker -> baseimages_Dockerfile [label="configured"];
   monorepo_apps_worker_Dockerfile_worker -> node_20_alpine [label="unresolved"];
-  service_a_Dockerfile -> baseimages [label="configured"];
-  service_b_Dockerfile -> baseimages [label="configured"];
+  service_a_Dockerfile -> baseimages_Dockerfile [label="configured"];
+  service_b_Dockerfile -> baseimages_Dockerfile [label="configured"];
 }

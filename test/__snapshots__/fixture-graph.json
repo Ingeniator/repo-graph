@@ -161,7 +161,8 @@
       "metadata": {
         "dependency": "node:20-alpine",
         "sourceInstruction": "FROM node:20-alpine",
-        "reason": "no configured or inferred owner found"
+        "reason": "no configured or inferred owner found",
+        "targetScope": "external"
       }
     },
     {
@@ -174,7 +175,8 @@
         "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18",
         "repo": "baseimages",
         "dockerfile": "Dockerfile",
-        "reason": "matched via imageOwnership config"
+        "reason": "matched via imageOwnership config",
+        "targetScope": "internal"
       }
     },
     {
@@ -187,7 +189,8 @@
         "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18 AS runtime",
         "repo": "baseimages",
         "dockerfile": "Dockerfile",
-        "reason": "matched via imageOwnership config"
+        "reason": "matched via imageOwnership config",
+        "targetScope": "internal"
       }
     },
     {
@@ -198,7 +201,8 @@
       "metadata": {
         "dependency": "node:20-alpine",
         "sourceInstruction": "FROM ${BASE} AS base",
-        "reason": "no configured or inferred owner found"
+        "reason": "no configured or inferred owner found",
+        "targetScope": "external"
       }
     },
     {
@@ -211,7 +215,8 @@
         "sourceInstruction": "FROM ghcr.io/ingeniator/base-node:18 AS builder",
         "repo": "baseimages",
         "dockerfile": "Dockerfile",
-        "reason": "matched via imageOwnership config"
+        "reason": "matched via imageOwnership config",
+        "targetScope": "internal"
       }
     },
     {
@@ -224,11 +229,24 @@
         "sourceInstruction": "FROM ${BASE_IMAGE}",
         "repo": "baseimages",
         "dockerfile": "Dockerfile",
-        "reason": "matched via imageOwnership config"
+        "reason": "matched via imageOwnership config",
+        "targetScope": "internal"
       }
     }
   ],
   "unresolvedImages": [
     "node:20-alpine"
-  ]
+  ],
+  "metadata": {
+    "repoCount": 4,
+    "dockerfileCount": 5,
+    "dependencyCount": 6,
+    "internalEdgeCount": 4,
+    "externalEdgeCount": 2,
+    "unresolvedCount": 1,
+    "dockerfilePatterns": [
+      "Dockerfile",
+      "Dockerfile.*"
+    ]
+  }
 }

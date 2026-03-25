@@ -64,11 +64,23 @@ export interface GraphEdge {
   metadata: Record<string, string | undefined>;
 }
 
+export interface ScanMetadata {
+  configPath?: string;
+  repoCount: number;
+  dockerfileCount: number;
+  dependencyCount: number;
+  internalEdgeCount: number;
+  externalEdgeCount: number;
+  unresolvedCount: number;
+  dockerfilePatterns: string[];
+}
+
 export interface ScanGraph {
   generatedAt: string;
   repos: RepoNode[];
   edges: GraphEdge[];
   unresolvedImages: string[];
+  metadata: ScanMetadata;
 }
 
 export interface RepoResolutionOptions {

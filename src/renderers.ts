@@ -1,39 +1,32 @@
+import { projectGraph, ProjectGraphOptions } from './project.js';
 import { ScanGraph } from './types.js';
 
-export function renderMermaid(graph: ScanGraph): string {
+export function renderMermaid(graph: ScanGraph, options: ProjectGraphOptions = {}): string {
+  const projected = projectGraph(graph, options);
   const lines: string[] = ['graph TD'];
   const declaredNodes = new Set<string>();
 
-  for (const repo of graph.repos) {
-    declareNode(lines, declaredNodes, repo.name, repo.name);
-    for (const dockerfile of repo.dockerfiles) {
-      declareNode(lines, declaredNodes, dockerfile.id, `${repo.name}/${dockerfile.path}`);
-      lines.push(`  ${nodeId(repo.name)} --> ${nodeId(dockerfile.id)}`);
-    }
+  for (const node of projected.nodes) {
+    declareNode(lines, declaredNodes, node.id, node.label);
   }
 
-  for (const edge of graph.edges) {
-    declareNode(lines, declaredNodes, edge.to, edge.to);
+  for (const edge of projected.edges) {
     lines.push(`  ${nodeId(edge.from)} -->|${edge.confidence}| ${nodeId(edge.to)}`);
   }
 
   return lines.join('\n');
 }
 
-export function renderDot(graph: ScanGraph): string {
+export function renderDot(graph: ScanGraph, options: ProjectGraphOptions = {}): string {
+  const projected = projectGraph(graph, options);
   const lines: string[] = ['digraph RepoGraph {'];
   const declaredNodes = new Set<string>();
 
-  for (const repo of graph.repos) {
-    declareDotNode(lines, declaredNodes, repo.name, repo.name);
-    for (const dockerfile of repo.dockerfiles) {
-      declareDotNode(lines, declaredNodes, dockerfile.id, `${repo.name}/${dockerfile.path}`);
-      lines.push(`  ${nodeId(repo.name)} -> ${nodeId(dockerfile.id)};`);
-    }
+  for (const node of projected.nodes) {
+    declareDotNode(lines, declaredNodes, node.id, node.label);
   }
 
-  for (const edge of graph.edges) {
-    declareDotNode(lines, declaredNodes, edge.to, edge.to);
+  for (const edge of projected.edges) {
     lines.push(`  ${nodeId(edge.from)} -> ${nodeId(edge.to)} [label="${edge.confidence}"];`);
   }
 
@@ -41,56 +34,35 @@ export function renderDot(graph: ScanGraph): string {
   return lines.join('\n');
 }
 
-export function renderSvgRepos(graph: ScanGraph): string {
-  const repoNames = graph.repos.map((repo) => repo.name);
-  const dockerfiles = graph.repos.flatMap((repo) =>
-    repo.dockerfiles.map((dockerfile) => ({
-      id: dockerfile.id,
-      repo: repo.name,
-      path: dockerfile.path,
-      label: `${repo.name}/${dockerfile.path}`,
-    })),
-  );
-
-  const externalTargets = [...new Set(graph.edges.map((edge) => edge.to))].filter(
-    (target) => !repoNames.includes(target) && !dockerfiles.some((dockerfile) => dockerfile.id === target),
-  );
+export function renderSvgRepos(graph: ScanGraph, options: ProjectGraphOptions = {}): string {
+  const projected = projectGraph(graph, options);
+  const groupedNodes = {
+    internal: projected.nodes.filter((node) => node.scope === 'internal'),
+    external: projected.nodes.filter((node) => node.scope === 'external'),
+  };
 
   const columns = [
-    {
-      title: 'Repos',
-      items: graph.repos.map((repo) => ({ id: repo.name, label: repo.name, kind: 'repo' as const })),
-    },
-    {
-      title: 'Dockerfiles',
-      items: dockerfiles.map((dockerfile) => ({ id: dockerfile.id, label: dockerfile.label, kind: 'dockerfile' as const })),
-    },
-    {
-      title: 'Resolved targets',
-      items: [
-        ...graph.repos.map((repo) => ({ id: repo.name, label: repo.name, kind: 'internal' as const })),
-        ...externalTargets.map((target) => ({ id: target, label: target, kind: 'external' as const })),
-      ],
-    },
-  ];
+    { title: `${projected.view} nodes`, items: groupedNodes.internal },
+    { title: 'External images', items: groupedNodes.external },
+  ].filter((column) => column.items.length);
 
-  const width = 1400;
+  const width = 1000;
   const headerHeight = 50;
   const rowHeight = 54;
   const boxHeight = 34;
-  const columnWidth = 360;
+  const columnWidth = 420;
   const margin = 40;
   const columnGap = 60;
   const boxLabelPadding = 14;
   const maxItems = Math.max(...columns.map((column) => column.items.length), 1);
-  const height = headerHeight + margin + maxItems * rowHeight + 80;
+  const height = headerHeight + margin + maxItems * rowHeight + 120;
 
-  const positions = new Map<string, { x: number; y: number; kind: string; label: string }>();
+  const positions = new Map<string, { x: number; y: number; label: string; kind: string; scope: string }>();
   columns.forEach((column, columnIndex) => {
     const x = margin + columnIndex * (columnWidth + columnGap);
     column.items.forEach((item, itemIndex) => {
       const y = headerHeight + margin + itemIndex * rowHeight;
-      positions.set(item.id, { x, y, kind: item.kind, label: item.label });
+      positions.set(item.id, { x, y, label: item.label, kind: item.kind, scope: item.scope });
     });
   });
 
@@ -110,9 +82,6 @@ export function renderSvgRepos(graph: ScanGraph): string {
   .box { stroke: #cbd5e1; stroke-width: 1.2; rx: 10; ry: 10; }
 </style>`);
   lines.push(`<defs>
-  <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-    <path d="M 0 0 L 10 5 L 0 10 z" fill="#94a3b8" />
-  </marker>
   <marker id="arrow-green" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
     <path d="M 0 0 L 10 5 L 0 10 z" fill="#059669" />
   </marker>
@@ -125,16 +94,14 @@ export function renderSvgRepos(graph: ScanGraph): string {
 </defs>`);
   lines.push(`<rect x="0" y="0" width="${width}" height="${height}" fill="#ffffff" />`);
   lines.push(`<text x="${margin}" y="32" class="title">repo-graph dependency map</text>`);
-  lines.push(
-    `<text x="${margin}" y="52" class="subtitle">Green=configured, blue=inferred, red dashed=unresolved</text>`,
-  );
+  lines.push(`<text x="${margin}" y="52" class="subtitle">View=${projected.view} · focus=${escapeXml(projected.options.focus || 'all')} · external=${projected.options.includeExternal ? 'on' : 'off'}</text>`);
 
   columns.forEach((column, columnIndex) => {
     const x = margin + columnIndex * (columnWidth + columnGap);
     lines.push(`<text x="${x}" y="88" class="coltitle">${escapeXml(column.title)}</text>`);
   });
 
-  for (const edge of graph.edges) {
+  for (const edge of projected.edges) {
     const from = positions.get(edge.from);
     const to = positions.get(edge.to);
     if (!from || !to) continue;
@@ -145,46 +112,28 @@ export function renderSvgRepos(graph: ScanGraph): string {
     const y2 = to.y + boxHeight / 2;
     const midX = (x1 + x2) / 2;
     const edgeClass = `edge edge-${edge.confidence}`;
-    const marker =
-      edge.confidence === 'configured'
-        ? 'url(#arrow-green)'
-        : edge.confidence === 'inferred'
-          ? 'url(#arrow-blue)'
-          : edge.confidence === 'unresolved'
-            ? 'url(#arrow-red)'
-            : 'url(#arrow)';
+    const marker = edge.confidence === 'configured' ? 'url(#arrow-green)' : edge.confidence === 'inferred' ? 'url(#arrow-blue)' : 'url(#arrow-red)';
 
-    lines.push(
-      `<path d="M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}" class="${edgeClass}" marker-end="${marker}"/>`,
-    );
+    lines.push(`<path d="M ${x1} ${y1} C ${midX} ${y1}, ${midX} ${y2}, ${x2} ${y2}" class="${edgeClass}" marker-end="${marker}"/>`);
   }
 
   columns.forEach((column) => {
     column.items.forEach((item) => {
       const position = positions.get(item.id);
       if (!position) return;
-      lines.push(
-        `<rect class="box" x="${position.x}" y="${position.y}" width="${columnWidth}" height="${boxHeight}" fill="${fillColor(item.kind)}" />`,
-      );
-      lines.push(
-        `<text x="${position.x + boxLabelPadding}" y="${position.y + 21}" class="label">${escapeXml(item.label)}</text>`,
-      );
+      lines.push(`<rect class="box" x="${position.x}" y="${position.y}" width="${columnWidth}" height="${boxHeight}" fill="${fillColor(item.kind, item.scope)}" />`);
+      lines.push(`<text x="${position.x + boxLabelPadding}" y="${position.y + 21}" class="label">${escapeXml(item.label)}</text>`);
     });
   });
 
-  const legendY = height - 30;
-  lines.push(
-    `<line x1="${margin}" y1="${legendY}" x2="${margin + 30}" y2="${legendY}" class="edge edge-configured" marker-end="url(#arrow-green)"/>`,
-  );
+  const legendY = height - 50;
+  lines.push(`<line x1="${margin}" y1="${legendY}" x2="${margin + 30}" y2="${legendY}" class="edge edge-configured" marker-end="url(#arrow-green)"/>`);
   lines.push(`<text x="${margin + 40}" y="${legendY + 4}" class="small">configured</text>`);
-  lines.push(
-    `<line x1="${margin + 150}" y1="${legendY}" x2="${margin + 180}" y2="${legendY}" class="edge edge-inferred" marker-end="url(#arrow-blue)"/>`,
-  );
+  lines.push(`<line x1="${margin + 150}" y1="${legendY}" x2="${margin + 180}" y2="${legendY}" class="edge edge-inferred" marker-end="url(#arrow-blue)"/>`);
   lines.push(`<text x="${margin + 190}" y="${legendY + 4}" class="small">inferred</text>`);
-  lines.push(
-    `<line x1="${margin + 270}" y1="${legendY}" x2="${margin + 300}" y2="${legendY}" class="edge edge-unresolved" marker-end="url(#arrow-red)"/>`,
-  );
+  lines.push(`<line x1="${margin + 270}" y1="${legendY}" x2="${margin + 300}" y2="${legendY}" class="edge edge-unresolved" marker-end="url(#arrow-red)"/>`);
   lines.push(`<text x="${margin + 310}" y="${legendY + 4}" class="small">unresolved</text>`);
+  lines.push(`<text x="${margin}" y="${height - 20}" class="small">repos=${projected.metadata.repoCount}, dockerfiles=${projected.metadata.dockerfileCount}, dependencies=${projected.metadata.dependencyCount}</text>`);
 
   lines.push('</svg>');
   return lines.join('\n');
@@ -211,22 +160,12 @@ function escapeLabel(value: string): string {
 }
 
 function escapeXml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-function fillColor(kind: 'repo' | 'dockerfile' | 'internal' | 'external'): string {
-  switch (kind) {
-    case 'repo':
-      return '#dbeafe';
-    case 'dockerfile':
-      return '#dcfce7';
-    case 'internal':
-      return '#fef3c7';
-    case 'external':
-      return '#fee2e2';
-  }
+function fillColor(kind: 'repo' | 'dockerfile' | 'image', scope: string): string {
+  if (scope === 'external') return '#fee2e2';
+  if (kind === 'repo') return '#dbeafe';
+  if (kind === 'dockerfile') return '#dcfce7';
+  return '#fef3c7';
 }
