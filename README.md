@@ -191,6 +191,11 @@ A checked-in example generated from the local fixture set is available in:
 - `examples/fixture-output/report.txt`
 - `examples/fixture-output/dependency-graph.mmd`
 - `examples/fixture-output/dependency-graph.dot`
+- `examples/fixture-output/dependency-graph.svg`
+
+Preview:
+
+![Fixture dependency graph](examples/fixture-output/dependency-graph.svg)
 
 The source fixture lives in `test/fixtures/`.
 

@@ -18,6 +18,11 @@ These files show example output from running `repo-graph` against the local test
 - `report.txt` — readable text report
 - `dependency-graph.mmd` — Mermaid graph
 - `dependency-graph.dot` — Graphviz DOT graph
+- `dependency-graph.svg` — rendered visual overview
+
+## Preview
+
+![Fixture dependency graph](./dependency-graph.svg)
 
 ## Regenerate
 
