@@ -12,7 +12,8 @@
     "scan": "tsx src/cli.ts scan",
     "report": "tsx src/cli.ts report",
     "render": "tsx src/cli.ts render",
-    "test": "node --test --import tsx test/**/*.test.ts"
+    "test": "node --test --import tsx test/**/*.test.ts",
+    "snapshots:update": "tsx scripts/update-snapshots.ts"
   },
   "dependencies": {
     "yaml": "^2.8.1"

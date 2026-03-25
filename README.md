@@ -210,6 +210,12 @@ Run:
 npm test
 ```
 
+Refresh snapshots intentionally with:
+
+```bash
+npm run snapshots:update
+```
+
 Current snapshots cover:
 
 - stabilized `graph.json`
