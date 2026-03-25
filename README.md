@@ -105,6 +105,7 @@ repo-graph scan repos.yaml --out ./output
 repo-graph report ./output/graph.json
 repo-graph render ./output/graph.json --format mermaid > dependency-graph.mmd
 repo-graph render ./output/graph.json --format dot > dependency-graph.dot
+repo-graph render ./output/graph.json --format svgrepos > dependency-graph.svg
 ```
 
 ### Helpful flags

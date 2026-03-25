@@ -34,4 +34,5 @@ npm run scan -- test/fixtures/repos.test.yaml --out ./examples/fixture-output
 npm run report -- ./examples/fixture-output/graph.json > ./examples/fixture-output/report.txt
 npm run render -- ./examples/fixture-output/graph.json --format mermaid > ./examples/fixture-output/dependency-graph.mmd
 npm run render -- ./examples/fixture-output/graph.json --format dot > ./examples/fixture-output/dependency-graph.dot
+npm run render -- ./examples/fixture-output/graph.json --format svgrepos > ./examples/fixture-output/dependency-graph.svg
 ```

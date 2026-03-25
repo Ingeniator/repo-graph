@@ -4,7 +4,7 @@ import path from 'node:path';
 import { loadConfig } from './config.js';
 import { buildGraph } from './graph.js';
 import { renderTextReport } from './report.js';
-import { renderDot, renderMermaid } from './renderers.js';
+import { renderDot, renderMermaid, renderSvgRepos } from './renderers.js';
 import { ScanGraph } from './types.js';
 
 async function main(): Promise<void> {
@@ -53,7 +53,7 @@ function handleReport(args: string[]): void {
 function handleRender(args: string[]): void {
   const graphPath = args[0];
   if (!graphPath) {
-    throw new Error('Usage: repo-graph render <graph.json> --format <mermaid|dot>');
+    throw new Error('Usage: repo-graph render <graph.json> --format <mermaid|dot|svgrepos>');
   }
 
   const format = getFlagValue(args, '--format') ?? 'mermaid';
@@ -66,6 +66,11 @@ function handleRender(args: string[]): void {
 
   if (format === 'dot') {
     console.log(renderDot(graph));
+    return;
+  }
+
+  if (format === 'svgrepos') {
+    console.log(renderSvgRepos(graph));
     return;
   }
 
@@ -82,7 +87,7 @@ function getFlagValue(args: string[], flag: string): string | undefined {
 }
 
 function printHelp(): void {
-  console.log(`repo-graph\n\nCommands:\n  scan <config.yaml> [--out <dir>]\n  report <graph.json>\n  render <graph.json> --format <mermaid|dot>`);
+  console.log(`repo-graph\n\nCommands:\n  scan <config.yaml> [--out <dir>]\n  report <graph.json>\n  render <graph.json> --format <mermaid|dot|svgrepos>`);
 }
 
 main().catch((error) => {

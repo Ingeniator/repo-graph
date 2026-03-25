@@ -25,6 +25,7 @@ From the repo root:
 npm run scan -- test/fixtures/repos.test.yaml --out ./output
 npm run report -- ./output/graph.json
 npm run render -- ./output/graph.json --format mermaid
+npm run render -- ./output/graph.json --format svgrepos > ./output/dependency-graph.svg
 ```
 
 ## Expected behavior
