@@ -1,0 +1,24 @@
+{
+  "name": "repo-graph",
+  "version": "0.1.0",
+  "description": "CLI for discovering Docker image dependencies across repositories",
+  "type": "module",
+  "bin": {
+    "repo-graph": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx src/cli.ts",
+    "scan": "tsx src/cli.ts scan",
+    "report": "tsx src/cli.ts report",
+    "render": "tsx src/cli.ts render"
+  },
+  "dependencies": {
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.5.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
