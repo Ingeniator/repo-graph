@@ -1,0 +1,169 @@
+{
+  "generatedAt": "<stable>",
+  "view": "dockerfile",
+  "options": {
+    "view": "dockerfile",
+    "focus": "",
+    "depth": 9007199254740991,
+    "includeExternal": true,
+    "excludeExternal": false
+  },
+  "summary": {
+    "scope": "full graph",
+    "ownership": {
+      "configured": 4,
+      "inferred": 0,
+      "unresolved": 2
+    },
+    "diagnostics": {
+      "warnings": 0,
+      "sourceErrors": 0
+    },
+    "scan": {
+      "repoCount": 4,
+      "dockerfileCount": 5,
+      "dependencyCount": 6,
+      "internalEdgeCount": 4,
+      "externalEdgeCount": 2,
+      "unresolvedCount": 1,
+      "warningCount": 2,
+      "dockerfilePatterns": [
+        "Dockerfile",
+        "Dockerfile.*"
+      ],
+      "sourceDiagnostics": []
+    },
+    "projection": {
+      "nodes": 6,
+      "edges": 6,
+      "unresolvedImages": 1,
+      "internalEdges": 4,
+      "externalEdges": 2
+    }
+  },
+  "repoProvenance": [
+    {
+      "name": "baseimages"
+    },
+    {
+      "name": "monorepo"
+    },
+    {
+      "name": "service-a"
+    },
+    {
+      "name": "service-b"
+    }
+  ],
+  "warnings": [],
+  "sourceDiagnostics": [],
+  "hotspots": {
+    "topTargets": [
+      {
+        "id": "baseimages:Dockerfile",
+        "label": "baseimages/Dockerfile",
+        "count": 4,
+        "scope": "internal",
+        "kind": "dockerfile"
+      },
+      {
+        "id": "node:20-alpine",
+        "label": "node:20-alpine",
+        "count": 2,
+        "scope": "external",
+        "kind": "image"
+      }
+    ],
+    "topExternalDependencies": [
+      {
+        "image": "node:20-alpine",
+        "count": 2
+      }
+    ]
+  },
+  "nodes": [
+    {
+      "id": "baseimages:Dockerfile",
+      "label": "baseimages/Dockerfile",
+      "kind": "dockerfile",
+      "scope": "internal"
+    },
+    {
+      "id": "monorepo:apps/api/Dockerfile",
+      "label": "monorepo/apps/api/Dockerfile",
+      "kind": "dockerfile",
+      "scope": "internal"
+    },
+    {
+      "id": "monorepo:apps/worker/Dockerfile.worker",
+      "label": "monorepo/apps/worker/Dockerfile.worker",
+      "kind": "dockerfile",
+      "scope": "internal"
+    },
+    {
+      "id": "node:20-alpine",
+      "label": "node:20-alpine",
+      "kind": "image",
+      "scope": "external"
+    },
+    {
+      "id": "service-a:Dockerfile",
+      "label": "service-a/Dockerfile",
+      "kind": "dockerfile",
+      "scope": "internal"
+    },
+    {
+      "id": "service-b:Dockerfile",
+      "label": "service-b/Dockerfile",
+      "kind": "dockerfile",
+      "scope": "internal"
+    }
+  ],
+  "edges": [
+    {
+      "from": "baseimages:Dockerfile",
+      "to": "node:20-alpine",
+      "confidence": "unresolved",
+      "rawDependency": "node:20-alpine",
+      "internal": false
+    },
+    {
+      "from": "monorepo:apps/api/Dockerfile",
+      "to": "baseimages:Dockerfile",
+      "confidence": "configured",
+      "rawDependency": "ghcr.io/ingeniator/base-node:18",
+      "internal": true
+    },
+    {
+      "from": "monorepo:apps/worker/Dockerfile.worker",
+      "to": "baseimages:Dockerfile",
+      "confidence": "configured",
+      "rawDependency": "ghcr.io/ingeniator/base-node:18",
+      "internal": true
+    },
+    {
+      "from": "monorepo:apps/worker/Dockerfile.worker",
+      "to": "node:20-alpine",
+      "confidence": "unresolved",
+      "rawDependency": "node:20-alpine",
+      "internal": false
+    },
+    {
+      "from": "service-a:Dockerfile",
+      "to": "baseimages:Dockerfile",
+      "confidence": "configured",
+      "rawDependency": "ghcr.io/ingeniator/base-node:18",
+      "internal": true
+    },
+    {
+      "from": "service-b:Dockerfile",
+      "to": "baseimages:Dockerfile",
+      "confidence": "configured",
+      "rawDependency": "ghcr.io/ingeniator/base-node:18",
+      "internal": true
+    }
+  ],
+  "unresolvedImages": [
+    "node:20-alpine"
+  ]
+}

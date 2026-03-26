@@ -9,6 +9,7 @@
 - Scope: full graph
 - Ownership: 4 configured, 0 inferred, 2 unresolved
 - Diagnostics: 0 warnings, 0 source errors
+- Projection: 6 nodes, 6 edges (4 internal, 2 external)
 
 ## Scan metadata
 
@@ -20,6 +21,15 @@
 - Unresolved images: 1
 - Warnings: 2
 - Dockerfile patterns: Dockerfile, Dockerfile.*
+
+## Dependency hotspots
+
+- `baseimages/Dockerfile` — dockerfile/internal, 4 dependent edge(s)
+- `node:20-alpine` — image/external, 2 dependent edge(s)
+
+## Common external dependencies
+
+- `node:20-alpine` — 2 dependent edge(s)
 
 ## Repo provenance
 

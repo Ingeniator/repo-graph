@@ -16,6 +16,8 @@ These files show example output from running `repo-graph` against the local test
 
 - `graph.json` — raw graph data
 - `report.txt` — readable text report
+- `report.md` — Markdown report
+- `report.json` — machine-friendly projection/report JSON
 - `dependency-graph.mmd` — Mermaid graph
 - `dependency-graph.dot` — Graphviz DOT graph
 - `dependency-graph.svg` — rendered visual overview
@@ -32,6 +34,8 @@ From repo root:
 mkdir -p examples/fixture-output
 npm run scan -- test/fixtures/repos.test.yaml --out ./examples/fixture-output
 npm run report -- ./examples/fixture-output/graph.json > ./examples/fixture-output/report.txt
+npm run report -- ./examples/fixture-output/graph.json --format markdown > ./examples/fixture-output/report.md
+npm run report -- ./examples/fixture-output/graph.json --format json > ./examples/fixture-output/report.json
 npm run render -- ./examples/fixture-output/graph.json --format mermaid > ./examples/fixture-output/dependency-graph.mmd
 npm run render -- ./examples/fixture-output/graph.json --format dot > ./examples/fixture-output/dependency-graph.dot
 npm run render -- ./examples/fixture-output/graph.json --format svgrepos > ./examples/fixture-output/dependency-graph.svg

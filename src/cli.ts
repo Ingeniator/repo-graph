@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { loadConfig } from './config.js';
 import { buildGraph } from './graph.js';
-import { renderMarkdownReport, renderTextReport } from './report.js';
+import { renderJsonReport, renderMarkdownReport, renderTextReport } from './report.js';
 import { renderDot, renderMermaid, renderSvgRepos } from './renderers.js';
 import { resolveRepoSources } from './repo-sources.js';
 import { ProjectGraphOptions } from './project.js';
@@ -51,7 +51,7 @@ function handleScan(args: string[]): void {
 function handleReport(args: string[]): void {
   const graphPath = args[0];
   if (!graphPath) {
-    throw new Error('Usage: repo-graph report <graph.json> [--format text|markdown] [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]');
+    throw new Error('Usage: repo-graph report <graph.json> [--format text|markdown|json] [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]');
   }
 
   const graph = readGraph(graphPath);
@@ -65,6 +65,11 @@ function handleReport(args: string[]): void {
 
   if (format === 'markdown' || format === 'md') {
     console.log(renderMarkdownReport(graph, options));
+    return;
+  }
+
+  if (format === 'json') {
+    process.stdout.write(renderJsonReport(graph, options));
     return;
   }
 
@@ -124,7 +129,7 @@ function hasFlag(args: string[], flag: string): boolean {
 }
 
 function printHelp(): void {
-  console.log(`repo-graph\n\nCommands:\n  scan <config.yaml> [--out <dir>] [--refresh] [--cache-dir <dir>]\n  report <graph.json> [--format text|markdown] [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]\n  render <graph.json> --format <mermaid|dot|svgrepos> [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]`);
+  console.log(`repo-graph\n\nCommands:\n  scan <config.yaml> [--out <dir>] [--refresh] [--cache-dir <dir>]\n  report <graph.json> [--format text|markdown|json] [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]\n  render <graph.json> --format <mermaid|dot|svgrepos> [--view repo|dockerfile|image] [--focus <name>] [--depth <n>] [--include-external|--exclude-external]`);
 }
 
 main().catch((error) => {
