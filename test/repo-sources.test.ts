@@ -50,6 +50,9 @@ test('resolveRepoSources clones git repos into cache and reuses cache', () => {
   assert.equal(fs.existsSync(path.join(clonedPath!, 'Dockerfile')), true);
   assert.equal(diagnostics.some((entry) => entry.code === 'git.clone'), true);
   assert.equal(diagnostics.some((entry) => entry.code === 'git.checkout.branch'), true);
+  assert.equal(resolvedOnce.repos[0].source?.requestedRef, 'main');
+  assert.equal(resolvedOnce.repos[0].source?.resolvedRef, 'origin/main');
+  assert.match(resolvedOnce.repos[0].source?.resolvedCommit ?? '', /^[0-9a-f]{40}$/);
 
   diagnostics.length = 0;
   const resolvedTwice = resolveRepoSources(config, { cacheDir, diagnostics });
@@ -74,6 +77,7 @@ test('resolveRepoSources can check out tags and commits', () => {
   const tagged = resolveRepoSources(tagConfig, { cacheDir, diagnostics: tagDiagnostics });
   assert.ok(tagged.repos[0].path);
   assert.equal(tagDiagnostics.some((entry) => entry.code === 'git.checkout.tag'), true);
+  assert.equal(tagged.repos[0].source?.resolvedRef, 'v1.0.0');
 
   const commitConfig: RawConfig = {
     repos: [{ name: 'sample-commit', git: originPath, ref: commitSha }],
@@ -83,9 +87,11 @@ test('resolveRepoSources can check out tags and commits', () => {
   const committed = resolveRepoSources(commitConfig, { cacheDir, diagnostics: commitDiagnostics });
   assert.ok(committed.repos[0].path);
   assert.equal(commitDiagnostics.some((entry) => entry.code === 'git.checkout.commit'), true);
+  assert.equal(committed.repos[0].source?.resolvedRef, commitSha);
+  assert.equal(committed.repos[0].source?.resolvedCommit, commitSha);
 });
 
-test('full scan output from cached repos supports projection filters', () => {
+test('full scan output from cached repos includes repo provenance and supports projection filters', () => {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-graph-test-'));
   const { originPath } = createOriginRepo(tempRoot);
   const cacheDir = path.join(tempRoot, 'cache');
@@ -98,10 +104,12 @@ test('full scan output from cached repos supports projection filters', () => {
   const diagnostics: SourceDiagnostic[] = [];
   const resolved = resolveRepoSources(config, { cacheDir, diagnostics });
   const graph = buildGraph(resolved);
+  graph.metadata.sourceDiagnostics = diagnostics;
   const projected = projectGraph(graph, { view: 'repo', focus: 'sample', depth: 1, includeExternal: true });
 
   assert.equal(graph.metadata.repoCount, 1);
-  assert.equal(graph.metadata.sourceDiagnostics.length, 0);
+  assert.equal(graph.metadata.sourceDiagnostics.length >= 2, true);
+  assert.equal(graph.repos[0].source?.acquisition, 'git_clone');
   assert.deepEqual(projected.nodes.map((node) => node.label).sort(), ['node:20-alpine', 'sample']);
   assert.equal(projected.edges.length, 1);
   assert.equal(projected.edges[0].internal, false);
@@ -115,5 +123,19 @@ test('resolveRepoSources surfaces private GitHub guidance in auth-style failures
   assert.throws(
     () => resolveRepoSources(config, { cacheDir: path.join(os.tmpdir(), `repo-graph-missing-${Date.now()}`) }),
     /Private GitHub repo\? Prefer SSH \(git@github.com:owner\/repo.git\) or ensure HTTPS auth\/token access is configured for this host\./,
+  );
+});
+
+test('resolveRepoSources surfaces clearer missing-ref failures', () => {
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'repo-graph-test-'));
+  const { originPath } = createOriginRepo(tempRoot);
+
+  const config: RawConfig = {
+    repos: [{ name: 'missing-ref', git: originPath, ref: 'does-not-exist' }],
+  };
+
+  assert.throws(
+    () => resolveRepoSources(config, { cacheDir: path.join(tempRoot, 'cache') }),
+    /Requested ref 'does-not-exist' was not found as a local branch, remote branch, tag, or commit/,
   );
 });
