@@ -1,5 +1,18 @@
 export type ResolutionConfidence = 'configured' | 'inferred' | 'unresolved';
 export type ViewType = 'repo' | 'dockerfile' | 'image';
+export type NodeScope = 'internal' | 'external';
+export type GraphNodeKind = 'repo' | 'dockerfile' | 'image';
+export type DependencyTargetKind = 'repo' | 'dockerfile' | 'image';
+export type OwnershipMatchKind =
+  | 'config.exact'
+  | 'config.normalized'
+  | 'declared.exact'
+  | 'declared.normalized'
+  | 'heuristic.dockerfile'
+  | 'heuristic.repo'
+  | 'ambiguous'
+  | 'unresolved_arg'
+  | 'unmatched';
 
 export interface RepoConfig {
   name: string;
@@ -8,6 +21,7 @@ export interface RepoConfig {
   git?: string;
   ref?: string;
   images?: ConfiguredImage[];
+  source?: RepoSourceProvenance;
 }
 
 export interface ConfiguredImage {
@@ -22,6 +36,15 @@ export interface RawConfig {
     cacheDir?: string;
   };
   imageOwnership?: Record<string, { repo: string; dockerfile?: string; confidence?: ResolutionConfidence }>;
+}
+
+export interface RepoSourceProvenance {
+  source: string;
+  requestedRef?: string;
+  resolvedRef?: string;
+  resolvedCommit?: string;
+  cachePath?: string;
+  acquisition: 'local_path' | 'git_clone' | 'git_cache';
 }
 
 export interface DockerfileRecord {
@@ -51,11 +74,21 @@ export interface OwnershipResolution {
   dockerfile?: string;
   confidence: ResolutionConfidence;
   reason: string;
+  matchedBy: OwnershipMatchKind;
+  scope: NodeScope;
+  targetKind: DependencyTargetKind;
+  normalization?: {
+    input: string;
+    normalized: string;
+    matchedInput?: string;
+    matchedNormalized?: string;
+  };
 }
 
 export interface RepoNode {
   name: string;
   path: string;
+  source?: RepoSourceProvenance;
   dockerfiles: DockerfileRecord[];
 }
 
@@ -64,6 +97,10 @@ export interface GraphEdge {
   to: string;
   kind: 'depends_on';
   confidence: ResolutionConfidence;
+  sourceKind: GraphNodeKind;
+  sourceScope: NodeScope;
+  targetKind: DependencyTargetKind;
+  targetScope: NodeScope;
   metadata: Record<string, string | undefined>;
 }
 

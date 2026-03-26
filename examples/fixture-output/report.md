@@ -1,8 +1,14 @@
 # repo-graph report
 
-- Generated: 2026-03-25T23:08:26.599Z
+- Generated: 2026-03-26T20:20:57.733Z
 - View: dockerfile
 - External images: included
+
+## Summary
+
+- Scope: full graph
+- Ownership: 4 configured, 0 inferred, 2 unresolved
+- Diagnostics: 0 warnings, 0 source errors
 
 ## Scan metadata
 
@@ -15,6 +21,30 @@
 - Warnings: 2
 - Dockerfile patterns: Dockerfile, Dockerfile.*
 
+## Repo provenance
+
+- **baseimages**: none
+- **monorepo**: none
+- **service-a**: none
+- **service-b**: none
+
+## Warnings
+
+- none
+
+## Source diagnostics
+
+- none
+
+## Ownership audit
+
+- `baseimages/Dockerfile` → `node:20-alpine` — **unresolved** via `unmatched` (no configured or inferred owner found)
+- `monorepo/apps/api/Dockerfile` → `baseimages/Dockerfile` — **configured** via `config.exact` (matched via imageOwnership config)
+- `monorepo/apps/worker/Dockerfile.worker` → `baseimages/Dockerfile` — **configured** via `config.exact` (matched via imageOwnership config)
+- `monorepo/apps/worker/Dockerfile.worker` → `node:20-alpine` — **unresolved** via `unmatched` (no configured or inferred owner found)
+- `service-a/Dockerfile` → `baseimages/Dockerfile` — **configured** via `config.exact` (matched via imageOwnership config)
+- `service-b/Dockerfile` → `baseimages/Dockerfile` — **configured** via `config.exact` (matched via imageOwnership config)
+
 ## Nodes
 
 - `baseimages/Dockerfile` — dockerfile/internal
@@ -26,16 +56,12 @@
 
 ## Edges
 
-- `baseimages/Dockerfile` → `node:20-alpine` — **unresolved** (raw: `node:20-alpine`)
-- `monorepo/apps/api/Dockerfile` → `baseimages/Dockerfile` — **configured** (raw: `ghcr.io/ingeniator/base-node:18`)
-- `monorepo/apps/worker/Dockerfile.worker` → `baseimages/Dockerfile` — **configured** (raw: `ghcr.io/ingeniator/base-node:18`)
-- `monorepo/apps/worker/Dockerfile.worker` → `node:20-alpine` — **unresolved** (raw: `node:20-alpine`)
-- `service-a/Dockerfile` → `baseimages/Dockerfile` — **configured** (raw: `ghcr.io/ingeniator/base-node:18`)
-- `service-b/Dockerfile` → `baseimages/Dockerfile` — **configured** (raw: `ghcr.io/ingeniator/base-node:18`)
-
-## Source diagnostics
-
-- none
+- `baseimages/Dockerfile` → `node:20-alpine` — **unresolved** (raw: `node:20-alpine`, explain: `unmatched; no configured or inferred owner found`)
+- `monorepo/apps/api/Dockerfile` → `baseimages/Dockerfile` — **configured** (raw: `ghcr.io/ingeniator/base-node:18`, explain: `config.exact; matched via imageOwnership config`)
+- `monorepo/apps/worker/Dockerfile.worker` → `baseimages/Dockerfile` — **configured** (raw: `ghcr.io/ingeniator/base-node:18`, explain: `config.exact; matched via imageOwnership config`)
+- `monorepo/apps/worker/Dockerfile.worker` → `node:20-alpine` — **unresolved** (raw: `node:20-alpine`, explain: `unmatched; no configured or inferred owner found`)
+- `service-a/Dockerfile` → `baseimages/Dockerfile` — **configured** (raw: `ghcr.io/ingeniator/base-node:18`, explain: `config.exact; matched via imageOwnership config`)
+- `service-b/Dockerfile` → `baseimages/Dockerfile` — **configured** (raw: `ghcr.io/ingeniator/base-node:18`, explain: `config.exact; matched via imageOwnership config`)
 
 ## Unresolved image ownership
 

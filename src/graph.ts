@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { RawConfig, ScanGraph, RepoNode, GraphEdge, OwnershipResolution, SourceDiagnostic } from './types.js';
+import { RawConfig, ScanGraph, RepoNode, GraphEdge, OwnershipResolution, RepoSourceProvenance } from './types.js';
 import { discoverDockerfiles } from './fs-utils.js';
 import { parseDockerfile } from './dockerfile-parser.js';
 
@@ -8,10 +8,11 @@ interface OwnershipCandidate {
   dockerfile?: string;
   confidence: 'configured' | 'inferred';
   reason: string;
+  matchedBy: OwnershipResolution['matchedBy'];
+  matchedInput?: string;
 }
 
 export function buildGraph(config: RawConfig): ScanGraph {
-  const sourceDiagnostics: SourceDiagnostic[] = [];
   const repos: RepoNode[] = config.repos.map((repo) => {
     if (!repo.path) {
       throw new Error(`Repo '${repo.name}' has no resolved path. Run source resolution before buildGraph.`);
@@ -20,6 +21,7 @@ export function buildGraph(config: RawConfig): ScanGraph {
     return {
       name: repo.name,
       path: repo.path,
+      source: repo.source,
       dockerfiles: discoverDockerfiles(repo.path, config.settings?.dockerfilePatterns).map((dockerfilePath) =>
         parseDockerfile(repo, dockerfilePath),
       ),
@@ -55,7 +57,7 @@ export function buildGraph(config: RawConfig): ScanGraph {
           }
         }
 
-        const targetScope = ownership.repo ? 'internal' : 'external';
+        const targetScope = ownership.scope;
         if (targetScope === 'internal') {
           internalEdgeCount += 1;
         } else {
@@ -67,6 +69,10 @@ export function buildGraph(config: RawConfig): ScanGraph {
           to: ownership.repo ?? dependency.resolved,
           kind: 'depends_on',
           confidence: ownership.confidence,
+          sourceKind: 'dockerfile',
+          sourceScope: 'internal',
+          targetKind: ownership.targetKind,
+          targetScope,
           metadata: {
             dependency: dependency.resolved,
             rawDependency: dependency.raw,
@@ -76,7 +82,12 @@ export function buildGraph(config: RawConfig): ScanGraph {
             repo: ownership.repo,
             dockerfile: ownership.dockerfile,
             reason: ownership.reason,
+            matchedBy: ownership.matchedBy,
+            normalizedDependency: ownership.normalization?.normalized,
+            matchedInput: ownership.normalization?.matchedInput,
+            matchedNormalized: ownership.normalization?.matchedNormalized,
             targetScope,
+            targetKind: ownership.targetKind,
           },
         });
       }
@@ -97,7 +108,7 @@ export function buildGraph(config: RawConfig): ScanGraph {
       unresolvedCount: unresolvedImages.size,
       warningCount,
       dockerfilePatterns: config.settings?.dockerfilePatterns ?? [],
-      sourceDiagnostics,
+      sourceDiagnostics: [],
     },
   };
 }
@@ -113,9 +124,17 @@ function resolveOwnership(config: RawConfig, repos: RepoNode[], image: string): 
     return inferred;
   }
 
+  const normalized = normalizeImageReference(image);
   return {
     confidence: 'unresolved',
     reason: image.includes('${') || image.includes('$') ? 'contains unresolved ARG substitution' : 'no configured or inferred owner found',
+    matchedBy: image.includes('${') || image.includes('$') ? 'unresolved_arg' : 'unmatched',
+    scope: 'external',
+    targetKind: 'image',
+    normalization: {
+      input: image,
+      normalized,
+    },
   };
 }
 
@@ -125,11 +144,21 @@ function resolveConfiguredOwnership(config: RawConfig, image: string): Ownership
 
   for (const [configuredImage, configured] of entries) {
     if (configuredImage === image || normalizeImageReference(configuredImage) === normalizedImage) {
+      const exact = configuredImage === image;
       return {
         repo: configured.repo,
         dockerfile: configured.dockerfile,
         confidence: configured.confidence ?? 'configured',
-        reason: configuredImage === image ? 'matched via imageOwnership config' : 'matched via normalized imageOwnership config',
+        reason: exact ? 'matched via imageOwnership config' : 'matched via normalized imageOwnership config',
+        matchedBy: exact ? 'config.exact' : 'config.normalized',
+        scope: 'internal',
+        targetKind: configured.dockerfile ? 'dockerfile' : 'repo',
+        normalization: {
+          input: image,
+          normalized: normalizedImage,
+          matchedInput: configuredImage,
+          matchedNormalized: normalizeImageReference(configuredImage),
+        },
       };
     }
   }
@@ -151,6 +180,8 @@ function inferOwnership(repos: RepoNode[], image: string): OwnershipResolution |
           dockerfile: dockerfile.path,
           confidence: 'inferred',
           reason: 'matched configured image declaration on a discovered dockerfile',
+          matchedBy: 'declared.exact',
+          matchedInput: declaredImage,
         };
 
         if (declaredImage === image) {
@@ -159,6 +190,7 @@ function inferOwnership(repos: RepoNode[], image: string): OwnershipResolution |
           normalizedMatches.push({
             ...candidate,
             reason: 'matched normalized configured image declaration on a discovered dockerfile',
+            matchedBy: 'declared.normalized',
           });
         }
       }
@@ -169,6 +201,7 @@ function inferOwnership(repos: RepoNode[], image: string): OwnershipResolution |
           dockerfile: dockerfile.path,
           confidence: 'inferred',
           reason: 'matched repo/service heuristics for a dockerfile without declared produced images',
+          matchedBy: 'heuristic.dockerfile',
         });
       }
     }
@@ -189,6 +222,13 @@ function inferOwnership(repos: RepoNode[], image: string): OwnershipResolution |
       repo: fallbackRepo,
       confidence: 'inferred',
       reason: 'matched repo name heuristically from image reference',
+      matchedBy: 'heuristic.repo',
+      scope: 'internal',
+      targetKind: 'repo',
+      normalization: {
+        input: image,
+        normalized: normalizedImage,
+      },
     };
   }
 
@@ -197,18 +237,47 @@ function inferOwnership(repos: RepoNode[], image: string): OwnershipResolution |
 
 function collapseOwnershipMatches(matches: OwnershipCandidate[], image: string): OwnershipResolution | undefined {
   if (!matches.length) return undefined;
+  const normalized = normalizeImageReference(image);
+
   if (matches.length === 1) {
-    return matches[0];
+    return {
+      ...matches[0],
+      scope: 'internal',
+      targetKind: matches[0].dockerfile ? 'dockerfile' : 'repo',
+      normalization: {
+        input: image,
+        normalized,
+        matchedInput: matches[0].matchedInput,
+        matchedNormalized: matches[0].matchedInput ? normalizeImageReference(matches[0].matchedInput) : undefined,
+      },
+    };
   }
 
   const uniqueTargets = new Set(matches.map((match) => `${match.repo}:${match.dockerfile ?? ''}`));
   if (uniqueTargets.size === 1) {
-    return matches[0];
+    return {
+      ...matches[0],
+      scope: 'internal',
+      targetKind: matches[0].dockerfile ? 'dockerfile' : 'repo',
+      normalization: {
+        input: image,
+        normalized,
+        matchedInput: matches[0].matchedInput,
+        matchedNormalized: matches[0].matchedInput ? normalizeImageReference(matches[0].matchedInput) : undefined,
+      },
+    };
   }
 
   return {
     confidence: 'unresolved',
     reason: `multiple possible internal owners found for ${image}: ${matches.map(formatOwnershipCandidate).sort().join(', ')}`,
+    matchedBy: 'ambiguous',
+    scope: 'external',
+    targetKind: 'image',
+    normalization: {
+      input: image,
+      normalized,
+    },
   };
 }
 
@@ -217,12 +286,13 @@ function formatOwnershipCandidate(candidate: OwnershipCandidate): string {
 }
 
 function matchesImplicitOwner(repoName: string, dockerfilePath: string, image: string): boolean {
+  const serviceKey = deriveServiceKey(dockerfilePath);
   const candidates = new Set<string>([
     repoName,
     path.posix.basename(repoName),
-    deriveServiceKey(dockerfilePath),
-    `${repoName}/${deriveServiceKey(dockerfilePath)}`,
-    `${repoName}-${deriveServiceKey(dockerfilePath)}`,
+    serviceKey,
+    `${repoName}/${serviceKey}`,
+    `${repoName}-${serviceKey}`,
   ].map((value) => normalizeToken(value)).filter(Boolean));
 
   const imageTokens = tokenizeImageReference(image);

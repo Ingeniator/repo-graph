@@ -7,6 +7,13 @@ export function stabilizeGraph(graph: ScanGraph): ScanGraph {
       .map((repo) => ({
         ...repo,
         path: normalizeFixturePath(repo.path),
+        source: repo.source
+          ? {
+              ...repo.source,
+              source: normalizeFixturePath(repo.source.source),
+              cachePath: repo.source.cachePath ? normalizeFixturePath(repo.source.cachePath) : undefined,
+            }
+          : undefined,
         dockerfiles: repo.dockerfiles
           .map((dockerfile) => ({
             ...dockerfile,

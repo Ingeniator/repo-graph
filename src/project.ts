@@ -1,4 +1,4 @@
-import { GraphEdge, RepoNode, ResolutionConfidence, ScanGraph, ViewType } from './types.js';
+import { DependencyTargetKind, GraphEdge, GraphNodeKind, NodeScope, RepoNode, ResolutionConfidence, ScanGraph, ViewType } from './types.js';
 
 export interface ProjectGraphOptions {
   view?: ViewType;
@@ -11,8 +11,8 @@ export interface ProjectGraphOptions {
 export interface ProjectNode {
   id: string;
   label: string;
-  kind: 'repo' | 'dockerfile' | 'image';
-  scope: 'internal' | 'external';
+  kind: GraphNodeKind;
+  scope: NodeScope;
 }
 
 export interface ProjectEdge {
@@ -170,24 +170,24 @@ function buildOwnerImageIndex(repos: RepoNode[]): Map<string, ProjectNode[]> {
   return index;
 }
 
-function projectEdge(repos: RepoNode[], edge: GraphEdge, view: ViewType, ownerImageIndex: Map<string, ProjectNode[]>) {
+function projectEdge(
+  repos: RepoNode[],
+  edge: GraphEdge,
+  view: ViewType,
+  ownerImageIndex: Map<string, ProjectNode[]>,
+): { from: ProjectNode; to: ProjectNode; confidence: ResolutionConfidence; rawDependency: string; internal: boolean } | undefined {
   const sourceRepo = repos.find((repo) => repo.dockerfiles.some((dockerfile) => dockerfile.id === edge.from));
   const sourceDockerfile = sourceRepo?.dockerfiles.find((dockerfile) => dockerfile.id === edge.from);
   if (!sourceRepo || !sourceDockerfile) return undefined;
 
   const ownerDockerfileKey = edge.metadata.repo && edge.metadata.dockerfile ? `${edge.metadata.repo}:${edge.metadata.dockerfile}` : undefined;
   const ownerImages = ownerDockerfileKey ? ownerImageIndex.get(ownerDockerfileKey) : undefined;
-  const internal = edge.metadata.targetScope === 'internal';
+  const internal = edge.targetScope === 'internal';
 
   if (view === 'repo') {
     return {
-      from: { id: sourceRepo.name, label: sourceRepo.name, kind: 'repo' as const, scope: 'internal' as const },
-      to: {
-        id: internal ? (edge.metadata.repo ?? edge.to) : edge.metadata.dependency ?? edge.to,
-        label: internal ? (edge.metadata.repo ?? edge.to) : (edge.metadata.dependency ?? edge.to),
-        kind: internal ? ('repo' as const) : ('image' as const),
-        scope: internal ? ('internal' as const) : ('external' as const),
-      },
+      from: { id: sourceRepo.name, label: sourceRepo.name, kind: 'repo', scope: 'internal' },
+      to: buildProjectedTargetNode(edge, 'repo'),
       confidence: edge.confidence,
       rawDependency: edge.metadata.dependency ?? edge.to,
       internal,
@@ -196,9 +196,9 @@ function projectEdge(repos: RepoNode[], edge: GraphEdge, view: ViewType, ownerIm
 
   if (view === 'image') {
     const sourceImages = getImageViewNodesForDockerfile(sourceRepo, sourceDockerfile);
-    const targetImages = internal
-      ? (ownerImages?.length ? ownerImages : [{ id: edge.metadata.dependency ?? edge.to, label: edge.metadata.dependency ?? edge.to, kind: 'image' as const, scope: 'internal' as const }])
-      : [{ id: edge.metadata.dependency ?? edge.to, label: edge.metadata.dependency ?? edge.to, kind: 'image' as const, scope: 'external' as const }];
+    const targetImages: ProjectNode[] = internal
+      ? (ownerImages?.length ? ownerImages : [{ id: edge.metadata.dependency ?? edge.to, label: edge.metadata.dependency ?? edge.to, kind: 'image', scope: 'internal' }])
+      : [{ id: edge.metadata.dependency ?? edge.to, label: edge.metadata.dependency ?? edge.to, kind: 'image', scope: 'external' }];
     return {
       from: sourceImages[0],
       to: targetImages[0],
@@ -212,20 +212,61 @@ function projectEdge(repos: RepoNode[], edge: GraphEdge, view: ViewType, ownerIm
     from: {
       id: sourceDockerfile.id,
       label: `${sourceRepo.name}/${sourceDockerfile.path}`,
-      kind: 'dockerfile' as const,
-      scope: 'internal' as const,
+      kind: 'dockerfile',
+      scope: 'internal',
     },
-    to: {
-      id: internal && edge.metadata.repo && edge.metadata.dockerfile ? `${edge.metadata.repo}:${edge.metadata.dockerfile}` : (edge.metadata.dependency ?? edge.to),
-      label: internal && edge.metadata.repo && edge.metadata.dockerfile
-        ? `${edge.metadata.repo}/${edge.metadata.dockerfile}`
-        : (edge.metadata.dependency ?? edge.to),
-      kind: internal ? ('dockerfile' as const) : ('image' as const),
-      scope: internal ? ('internal' as const) : ('external' as const),
-    },
+    to: buildProjectedTargetNode(edge, 'dockerfile'),
     confidence: edge.confidence,
     rawDependency: edge.metadata.dependency ?? edge.to,
     internal,
+  };
+}
+
+function buildProjectedTargetNode(edge: GraphEdge, view: Extract<ViewType, 'repo' | 'dockerfile'>): ProjectNode {
+  if (view === 'repo') {
+    if (edge.targetScope === 'internal') {
+      const repoLabel = edge.metadata.repo ?? edge.to;
+      return {
+        id: repoLabel,
+        label: repoLabel,
+        kind: 'repo',
+        scope: 'internal',
+      };
+    }
+
+    const externalLabel = edge.metadata.dependency ?? edge.to;
+    return {
+      id: externalLabel,
+      label: externalLabel,
+      kind: 'image',
+      scope: 'external',
+    };
+  }
+
+  if (edge.targetScope === 'internal' && edge.targetKind === 'dockerfile' && edge.metadata.repo && edge.metadata.dockerfile) {
+    return {
+      id: `${edge.metadata.repo}:${edge.metadata.dockerfile}`,
+      label: `${edge.metadata.repo}/${edge.metadata.dockerfile}`,
+      kind: 'dockerfile',
+      scope: 'internal',
+    };
+  }
+
+  if (edge.targetScope === 'internal' && edge.metadata.repo) {
+    return {
+      id: edge.metadata.repo,
+      label: edge.metadata.repo,
+      kind: edge.targetKind === 'repo' ? 'repo' : 'image',
+      scope: 'internal',
+    };
+  }
+
+  const externalLabel = edge.metadata.dependency ?? edge.to;
+  return {
+    id: externalLabel,
+    label: externalLabel,
+    kind: 'image',
+    scope: 'external',
   };
 }
 

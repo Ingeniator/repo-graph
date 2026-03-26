@@ -25,6 +25,8 @@ test('image ownership matches normalized configured images without exact tag mat
   assert.ok(dependency?.ownership);
   assert.equal(dependency.ownership?.repo, 'baseimages');
   assert.match(dependency.ownership?.reason ?? '', /normalized imageOwnership/);
+  assert.equal(dependency.ownership?.matchedBy, 'config.normalized');
+  assert.equal(dependency.ownership?.normalization?.normalized, 'ghcr.io/ingeniator/base-node');
 });
 
 test('heuristics can infer internal ownership for services without declared produced images', () => {
@@ -44,6 +46,7 @@ test('heuristics can infer internal ownership for services without declared prod
   assert.equal(dependency?.ownership?.repo, 'monorepo');
   assert.equal(dependency?.ownership?.dockerfile, 'apps/api/Dockerfile');
   assert.equal(dependency?.ownership?.confidence, 'inferred');
+  assert.equal(dependency?.ownership?.matchedBy, 'heuristic.dockerfile');
 });
 
 test('ambiguous heuristic ownership remains unresolved instead of guessing', () => {
@@ -67,5 +70,26 @@ test('ambiguous heuristic ownership remains unresolved instead of guessing', () 
 
   assert.ok(dependency?.ownership);
   assert.equal(dependency?.ownership?.confidence, 'unresolved');
+  assert.equal(dependency?.ownership?.matchedBy, 'ambiguous');
   assert.match(dependency?.ownership?.reason ?? '', /multiple possible internal owners/);
+});
+
+test('graph edges record explicit target kind and scope semantics', () => {
+  const config = loadConfig(fixtureConfigPath);
+  const graph = buildGraph(config);
+
+  const configuredInternal = graph.edges.find((edge) => edge.metadata.dependency === 'ghcr.io/ingeniator/base-node:18');
+  const unresolvedExternal = graph.edges.find((edge) => edge.metadata.dependency === 'node:20-alpine');
+
+  assert.ok(configuredInternal);
+  assert.equal(configuredInternal.sourceKind, 'dockerfile');
+  assert.equal(configuredInternal.sourceScope, 'internal');
+  assert.equal(configuredInternal.targetKind, 'dockerfile');
+  assert.equal(configuredInternal.targetScope, 'internal');
+
+  assert.ok(unresolvedExternal);
+  assert.equal(unresolvedExternal.sourceKind, 'dockerfile');
+  assert.equal(unresolvedExternal.sourceScope, 'internal');
+  assert.equal(unresolvedExternal.targetKind, 'image');
+  assert.equal(unresolvedExternal.targetScope, 'external');
 });
