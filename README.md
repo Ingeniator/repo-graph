@@ -2,6 +2,29 @@
 
 A CLI tool for discovering Docker image dependencies across multiple repositories and rendering them as a graph.
 
+## Install
+
+```bash
+npm install --global repo-graph
+# or run without installing
+npx repo-graph scan repos.yaml --out ./output
+```
+
+## Quick start
+
+```bash
+repo-graph scan repos.yaml --out ./output
+repo-graph report ./output/graph.json
+repo-graph report ./output/graph.json --format json > dependency-report.json
+repo-graph render ./output/graph.json --format mermaid > dependency-graph.mmd
+```
+
+If you only want a scoped slice of a larger graph, start with:
+
+```bash
+repo-graph report ./output/graph.json --view repo --focus baseimages --depth 2 --exclude-external
+```
+
 ## Product Summary
 
 `repo-graph` scans one or more repositories, finds Dockerfiles, parses image relationships, resolves internal image ownership where possible, and produces outputs that help answer questions like:
@@ -106,6 +129,7 @@ repo-graph scan repos.yaml --out ./output --refresh
 repo-graph scan repos.yaml --out ./output --cache-dir ./.cache/repos
 repo-graph report ./output/graph.json
 repo-graph report ./output/graph.json --format markdown > dependency-report.md
+repo-graph report ./output/graph.json --format json > dependency-report.json
 repo-graph render ./output/graph.json --format mermaid > dependency-graph.mmd
 repo-graph render ./output/graph.json --format dot > dependency-graph.dot
 repo-graph render ./output/graph.json --format svgrepos > dependency-graph.svg
@@ -118,8 +142,9 @@ repo-graph render ./output/graph.json --format svgrepos > dependency-graph.svg
 - `--include-external`
 - `--exclude-external`
 - `--view repo|dockerfile|image`
-- `--cached`
 - `--refresh`
+
+For bigger graphs, the text and Markdown reports now summarize the busiest dependency targets and common external images first, then cap long node/edge dumps with a pointer to `--focus`, `--depth`, or `--format json`.
 
 ## Example Questions the Tool Should Answer
 
@@ -219,6 +244,7 @@ settings:
 V1 should produce:
 
 - JSON graph
+- structured projection/report JSON for automation and CI scripts
 - Mermaid diagram
 - readable text summary/report
 - Markdown report suitable for docs/PRs/wiki pages
@@ -229,6 +255,8 @@ A checked-in example generated from the local fixture set is available in:
 
 - `examples/fixture-output/graph.json`
 - `examples/fixture-output/report.txt`
+- `examples/fixture-output/report.md`
+- `examples/fixture-output/report.json`
 - `examples/fixture-output/dependency-graph.mmd`
 - `examples/fixture-output/dependency-graph.dot`
 - `examples/fixture-output/dependency-graph.svg`
@@ -266,6 +294,7 @@ Current snapshots cover:
 - stabilized `graph.json`
 - text report
 - Markdown report
+- JSON report
 - Mermaid output
 - DOT output
 - `svgrepos` SVG output
