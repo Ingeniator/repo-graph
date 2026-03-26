@@ -11,7 +11,7 @@ interface ParseContext {
 
 export function parseDockerfile(repo: RepoConfig, absolutePath: string): DockerfileRecord {
   const content = fs.readFileSync(absolutePath, 'utf8');
-  const lines = content.split(/\r?\n/);
+  const lines = joinLineContinuations(content.split(/\r?\n/));
   const context: ParseContext = {
     globalArgs: new Map(),
     stageArgs: new Map(),
@@ -23,9 +23,9 @@ export function parseDockerfile(repo: RepoConfig, absolutePath: string): Dockerf
   const declaredImages: string[] = [];
   const warnings: ScanWarning[] = [];
 
-  for (let index = 0; index < lines.length; index += 1) {
-    const lineNumber = index + 1;
-    const trimmed = stripComment(lines[index]).trim();
+  for (const entry of lines) {
+    const lineNumber = entry.lineNumber;
+    const trimmed = stripComment(entry.text).trim();
     if (!trimmed) continue;
 
     const argMatch = trimmed.match(/^ARG\s+([A-Za-z_][A-Za-z0-9_]*)(?:=(.*))?$/i);
@@ -137,17 +137,20 @@ function parseFromInstruction(fromBody: string): { rawImageRef: string; alias?: 
     cursor += 1;
   }
 
-  const rawImageRef = parts[cursor];
-  if (!rawImageRef) {
-    return undefined;
-  }
-
+  const imageParts: string[] = [];
   let alias: string | undefined;
-  for (let index = cursor + 1; index < parts.length; index += 1) {
+
+  for (let index = cursor; index < parts.length; index += 1) {
     if (parts[index].toUpperCase() === 'AS') {
       alias = parts[index + 1];
       break;
     }
+    imageParts.push(parts[index]);
+  }
+
+  const rawImageRef = imageParts.join(' ').trim();
+  if (!rawImageRef) {
+    return undefined;
   }
 
   return { rawImageRef, alias };
@@ -155,7 +158,8 @@ function parseFromInstruction(fromBody: string): { rawImageRef: string; alias?: 
 
 function resolveArgSubstitution(value: string, args: Map<string, string>): string {
   return value
-    .replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}/g, (match, name: string) => args.get(name) ?? match)
+    .replace(/\$\{([A-Za-z_][A-Za-z0-9_]*):-([^}]*)\}/g, (_match, name: string, fallback: string) => args.get(name) ?? fallback)
+    .replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (match, name: string) => args.get(name) ?? match)
     .replace(/\$([A-Za-z_][A-Za-z0-9_]*)/g, (match, name: string) => args.get(name) ?? match);
 }
 
@@ -178,4 +182,22 @@ function deriveServiceName(relativePath: string): string {
 
 function normalizePath(value: string): string {
   return value.replace(/\\/g, '/').replace(/^\.\//, '');
+}
+
+function joinLineContinuations(lines: string[]): Array<{ lineNumber: number; text: string }> {
+  const joined: Array<{ lineNumber: number; text: string }> = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    let text = lines[index];
+    const lineNumber = index + 1;
+
+    while (/\\\s*$/.test(text) && index + 1 < lines.length) {
+      text = text.replace(/\\\s*$/, ` ${lines[index + 1].trimStart()}`);
+      index += 1;
+    }
+
+    joined.push({ lineNumber, text });
+  }
+
+  return joined;
 }

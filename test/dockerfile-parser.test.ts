@@ -31,15 +31,40 @@ test('parseDockerfile handles ARG before FROM, --platform, and stage aliases', (
   );
 });
 
-test('parseDockerfile leaves unresolved substitutions and emits warnings', () => {
+test('parseDockerfile resolves default substitutions when available and keeps unknowns unresolved', () => {
   withDockerfile(
-    ['ARG REGISTRY', 'FROM ${REGISTRY:-ghcr.io}/team/app:$TAG'].join('\n'),
+    ['ARG REGISTRY', 'FROM ${REGISTRY:-ghcr.io}/team/app:${TAG:-latest}'].join('\n'),
     (repo, dockerfilePath) => {
       const parsed = parseDockerfile(repo, dockerfilePath);
       assert.equal(parsed.dependencies.length, 1);
-      assert.equal(parsed.dependencies[0].resolved, '${REGISTRY:-ghcr.io}/team/app:$TAG');
+      assert.equal(parsed.dependencies[0].resolved, 'ghcr.io/team/app:latest');
+      assert.equal(parsed.dependencies[0].confidence, 'inferred');
+      assert.deepEqual(parsed.warnings, []);
+    },
+  );
+});
+
+test('parseDockerfile leaves unresolved substitutions and emits warnings', () => {
+  withDockerfile(
+    ['ARG REGISTRY', 'FROM ${REGISTRY}/team/app:$TAG'].join('\n'),
+    (repo, dockerfilePath) => {
+      const parsed = parseDockerfile(repo, dockerfilePath);
+      assert.equal(parsed.dependencies.length, 1);
+      assert.equal(parsed.dependencies[0].resolved, '${REGISTRY}/team/app:$TAG');
       assert.equal(parsed.dependencies[0].confidence, 'unresolved');
       assert.equal(parsed.warnings.some((warning) => warning.code === 'docker.from.unresolved_arg'), true);
+    },
+  );
+});
+
+test('parseDockerfile handles multiline FROM continuations', () => {
+  withDockerfile(
+    ['ARG REGISTRY=ghcr.io', 'FROM ${REGISTRY}/team/ \\', '  app:latest AS base', 'RUN echo hi'].join('\n'),
+    (repo, dockerfilePath) => {
+      const parsed = parseDockerfile(repo, dockerfilePath);
+      assert.equal(parsed.dependencies.length, 1);
+      assert.equal(parsed.dependencies[0].resolved, 'ghcr.io/team/ app:latest');
+      assert.equal(parsed.dependencies[0].sourceLine, 2);
     },
   );
 });

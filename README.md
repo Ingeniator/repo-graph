@@ -270,6 +270,24 @@ Current snapshots cover:
 - DOT output
 - `svgrepos` SVG output
 
+## Dockerfile parser behavior
+
+Supported today:
+
+- `ARG` defaults before and within stages
+- `FROM` with `--platform=...`
+- `AS` stage aliases
+- multi-stage alias reuse without creating false dependencies
+- multiline `FROM` continuations joined with backslashes
+- `${VAR}` and `${VAR:-default}` substitutions in image references
+
+Intentionally not supported yet:
+
+- full Docker/BuildKit expression parity
+- conditional shell-style expansion beyond simple `:-` defaults
+- dynamically computed image references from scripts or `RUN` steps
+- validation that referenced images/tags actually exist in a registry
+
 ## Definition of Done for V1
 
 V1 is successful if it can:
